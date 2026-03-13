@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIRWAVES Admin</title>
+<link rel="icon" type="image/jpeg" href="/images/logo.jpg">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0a0a12;--surface:#12121e;--surface2:#1a1a2e;--surface3:#22223a;
+  --green:#39ff14;--green-dim:#2bcc10;--purple:#8b5cf6;
+  --blue:#06b6d4;--text:#e8e8f0;--text-dim:#9898a8;--text-muted:#58586a;
+  --danger:#ef4444;--warning:#f59e0b;--success:#22c55e;
+  --radius:12px;--radius-sm:8px;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);line-height:1.6}
+button{cursor:pointer;font-family:inherit;border:none;outline:none}
+input,select,textarea{font-family:inherit;background:var(--surface2);color:var(--text);border:1px solid var(--surface3);border-radius:var(--radius-sm);padding:10px 14px;width:100%;outline:none;transition:border-color .2s;font-size:.9rem}
+input:focus,select:focus,textarea:focus{border-color:var(--green)}
+.btn{padding:10px 22px;border-radius:var(--radius-sm);font-weight:700;font-size:.85rem;transition:all .2s;display:inline-flex;align-items:center;gap:6px}
+.btn-primary{background:var(--green);color:#000}
+.btn-primary:hover{background:var(--green-dim)}
+.btn-secondary{background:var(--surface3);color:var(--text)}
+.btn-secondary:hover{background:var(--purple);color:#fff}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-danger:hover{background:#dc2626}
+.btn-sm{padding:6px 14px;font-size:.8rem}
+
+/* Login */
+.login-page{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.login-box{background:var(--surface);border:1px solid var(--surface3);border-radius:var(--radius);padding:40px;max-width:400px;width:100%;text-align:center}
+.login-box img{width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid var(--green);margin-bottom:16px}
+.login-box h1{font-family:'Archivo Black',sans-serif;font-size:1.4rem;margin-bottom:4px}
+.login-box .sub{color:var(--text-dim);font-size:.9rem;margin-bottom:24px}
+.login-box .field{margin-bottom:14px;text-align:left}
+.login-box label{display:block;font-size:.78rem;font-weight:600;margin-bottom:4px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.05em}
+.login-box .error{color:var(--danger);font-size:.85rem;margin-top:12px;padding:10px;background:rgba(239,68,68,.1);border-radius:var(--radius-sm);display:none}
+.login-box .register-link{margin-top:16px;font-size:.88rem;color:var(--text-dim)}
+
+/* Layout */
+.admin-layout{display:none;min-height:100vh}
+.sidebar{position:fixed;left:0;top:0;width:220px;height:100vh;background:var(--surface);border-right:1px solid var(--surface2);padding:20px 0;display:flex;flex-direction:column;z-index:50}
+.sidebar .brand{display:flex;align-items:center;gap:10px;padding:0 20px 20px;border-bottom:1px solid var(--surface2);margin-bottom:12px}
+.sidebar .brand img{width:36px;height:36px;border-radius:50%;object-fit:cover}
+.sidebar .brand span{font-family:'Archivo Black',sans-serif;font-size:1rem;background:linear-gradient(135deg,var(--green),var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.sidebar nav{flex:1;padding:0 10px}
+.sidebar nav button{width:100%;text-align:left;padding:10px 14px;border-radius:var(--radius-sm);background:transparent;color:var(--text-dim);font-size:.88rem;font-weight:500;transition:all .2s;margin-bottom:2px;display:flex;align-items:center;gap:10px}
+.sidebar nav button:hover{color:var(--text);background:var(--surface2)}
+.sidebar nav button.active{color:var(--green);background:rgba(57,255,20,.08)}
+.sidebar .sidebar-footer{padding:12px 20px;border-top:1px solid var(--surface2);font-size:.8rem;color:var(--text-muted)}
+.sidebar .sidebar-footer a{color:var(--text-dim)}
+.content{margin-left:220px;padding:24px 32px;min-height:100vh}
+
+/* Dashboard Cards */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:32px}
+.stat-card{background:var(--surface);border:1px solid var(--surface2);border-radius:var(--radius);padding:20px}
+.stat-card .label{font-size:.78rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+.stat-card .value{font-family:'Archivo Black',sans-serif;font-size:1.8rem}
+.stat-card .value.green{color:var(--green)}
+.stat-card .value.purple{color:var(--purple)}
+.stat-card .value.blue{color:var(--blue)}
+.stat-card .value.warning{color:var(--warning)}
+
+/* Tables */
+.table-wrap{background:var(--surface);border:1px solid var(--surface2);border-radius:var(--radius);overflow:hidden}
+.table-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--surface2);flex-wrap:wrap;gap:10px}
+.table-header h3{font-size:1rem;font-weight:700}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;padding:12px 20px;font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);border-bottom:1px solid var(--surface2);font-weight:600}
+td{padding:12px 20px;border-bottom:1px solid var(--surface2);font-size:.88rem;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,.02)}
+.status-badge{font-size:.75rem;padding:3px 10px;border-radius:50px;font-weight:600}
+.status-pending{background:rgba(245,158,11,.12);color:var(--warning)}
+.status-shipped{background:rgba(6,182,212,.12);color:var(--blue)}
+.status-delivered{background:rgba(34,197,94,.12);color:var(--success)}
+.status-cancelled{background:rgba(239,68,68,.12);color:var(--danger)}
+
+/* Forms */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-grid .full{grid-column:1/-1}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:.78rem;font-weight:600;margin-bottom:4px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.05em}
+
+/* Modal */
+.modal-overlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.show{display:flex}
+.modal{background:var(--surface);border:1px solid var(--surface3);border-radius:var(--radius);max-width:600px;width:100%;max-height:90vh;overflow-y:auto;padding:28px}
+.modal h3{font-family:'Archivo Black',sans-serif;margin-bottom:20px;font-size:1.2rem}
+
+/* Section header */
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px}
+.section-header h2{font-family:'Archivo Black',sans-serif;font-size:1.3rem}
+
+/* Panels */
+.panel{background:var(--surface);border:1px solid var(--surface2);border-radius:var(--radius);padding:24px;margin-bottom:20px}
+.panel h3{font-size:1rem;font-weight:700;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--surface2)}
+
+/* Toast */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--green);color:#000;padding:12px 24px;border-radius:var(--radius);font-weight:700;font-size:.88rem;z-index:999;transition:transform .3s;box-shadow:0 8px 30px rgba(57,255,20,.3)}
+.toast.show{transform:translateX(-50%) translateY(0)}
+
+/* Responsive */
+@media(max-width:768px){
+  .sidebar{width:60px}
+  .sidebar .brand span,.sidebar nav button span,.sidebar .sidebar-footer{display:none}
+  .sidebar nav button{justify-content:center;padding:12px}
+  .content{margin-left:60px;padding:16px}
+  .form-grid{grid-template-columns:1fr}
+}
+
+.view{display:none}
+.view.active{display:block;animation:fadeIn .2s ease}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+</style>
+</head>
+<body>
+
+<!-- LOGIN PAGE -->
+<div class="login-page" id="loginPage">
+  <div class="login-box">
+    <img src="/images/logo.jpg" alt="AIRWAVES">
+    <h1>Admin Dashboard</h1>
+    <p class="sub">Sign in to manage your store</p>
+    <div id="loginForm">
+      <div class="field">
+        <label>Email</label>
+        <input type="email" id="loginEmail" placeholder="admin@airwaves.com">
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" id="loginPassword" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <button class="btn btn-primary" onclick="doLogin()" style="width:100%;justify-content:center;margin-top:8px">Sign In</button>
+      <div class="error" id="loginError"></div>
+    </div>
+    <div class="register-link">
+      <span id="toggleAuthText">Need an account? <a href="#" onclick="event.preventDefault();toggleAuthMode()">Register</a></span>
+    </div>
+    <!-- Register form (hidden by default) -->
+    <div id="registerForm" style="display:none">
+      <div class="field">
+        <label>Name</label>
+        <input type="text" id="regName" placeholder="Your name">
+      </div>
+      <div class="field">
+        <label>Email</label>
+        <input type="email" id="regEmail" placeholder="your@email.com">
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" id="regPassword" placeholder="••••••••" onkeydown="if(event.key==='Enter')doRegister()">
+      </div>
+      <button class="btn btn-primary" onclick="doRegister()" style="width:100%;justify-content:center;margin-top:8px">Create Account</button>
+      <div class="error" id="regError"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN LAYOUT -->
+<div class="admin-layout" id="adminLayout">
+  <div class="sidebar">
+    <div class="brand">
+      <img src="/images/logo.jpg" alt="">
+      <span>AIRWAVES</span>
+    </div>
+    <nav>
+      <button class="active" onclick="showSection('dashboard')" data-section="dashboard">📊 <span>Dashboard</span></button>
+      <button onclick="showSection('products')" data-section="products">📦 <span>Products</span></button>
+      <button onclick="showSection('orders')" data-section="orders">🛒 <span>Orders</span></button>
+      <button onclick="showSection('customers')" data-section="customers">👥 <span>Customers</span></button>
+      <button onclick="showSection('settings')" data-section="settings">⚙️ <span>Settings</span></button>
+    </nav>
+    <div class="sidebar-footer">
+      <a href="/">← Back to Store</a><br>
+      <a href="#" onclick="event.preventDefault();adminLogout()">Sign Out</a>
+    </div>
+  </div>
+  
+  <div class="content">
+    <!-- DASHBOARD -->
+    <div class="view active" id="dashboardView">
+      <div class="section-header"><h2>Dashboard</h2><span style="color:var(--text-muted);font-size:.85rem" id="welcomeMsg"></span></div>
+      <div class="stat-grid" id="statsGrid">
+        <div class="stat-card"><div class="label">Products</div><div class="value green" id="statProducts">-</div></div>
+        <div class="stat-card"><div class="label">Orders</div><div class="value purple" id="statOrders">-</div></div>
+        <div class="stat-card"><div class="label">Revenue</div><div class="value blue" id="statRevenue">-</div></div>
+        <div class="stat-card"><div class="label">Customers</div><div class="value warning" id="statCustomers">-</div></div>
+      </div>
+      <div class="table-wrap">
+        <div class="table-header"><h3>Recent Orders</h3></div>
+        <table><thead><tr><th>Order</th><th>Customer</th><th>Total</th><th>Status</th><th>Date</th></tr></thead>
+        <tbody id="recentOrders"><tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:30px">Loading...</td></tr></tbody></table>
+      </div>
+    </div>
+
+    <!-- PRODUCTS -->
+    <div class="view" id="productsView">
+      <div class="section-header">
+        <h2>Products</h2>
+        <button class="btn btn-primary" onclick="openProductForm()">+ Add Product</button>
+      </div>
+      <div class="table-wrap">
+        <table><thead><tr><th>Product</th><th>Category</th><th>Price</th><th>Stock</th><th>Featured</th><th>Actions</th></tr></thead>
+        <tbody id="productsTable"><tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:30px">Loading...</td></tr></tbody></table>
+      </div>
+    </div>
+
+    <!-- ORDERS -->
+    <div class="view" id="ordersView">
+      <div class="section-header"><h2>Orders</h2></div>
+      <div class="table-wrap">
+        <table><thead><tr><th>ID</th><th>Customer</th><th>Email</th><th>Total</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+        <tbody id="ordersTable"><tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:30px">Loading...</td></tr></tbody></table>
+      </div>
+    </div>
+
+    <!-- CUSTOMERS -->
+    <div class="view" id="customersView">
+      <div class="section-header"><h2>Customers</h2></div>
+      <div class="table-wrap">
+        <table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Joined</th></tr></thead>
+        <tbody id="customersTable"><tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:30px">Loading...</td></tr></tbody></table>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="view" id="settingsView">
+      <div class="section-header"><h2>Store Settings</h2></div>
+      <div class="panel">
+        <h3>General</h3>
+        <div class="form-grid">
+          <div class="field"><label>Store Name</label><input type="text" id="setStoreName"></div>
+          <div class="field"><label>Tagline</label><input type="text" id="setTagline"></div>
+          <div class="field"><label>Contact Email</label><input type="email" id="setEmail"></div>
+          <div class="field"><label>Phone</label><input type="text" id="setPhone"></div>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>Shipping & Tax</h3>
+        <div class="form-grid">
+          <div class="field"><label>Flat Rate Shipping ($)</label><input type="number" step="0.01" id="setShipping"></div>
+          <div class="field"><label>Free Shipping Threshold ($)</label><input type="number" step="0.01" id="setFreeShip"></div>
+          <div class="field"><label>Tax Rate (%)</label><input type="number" step="0.01" id="setTax"></div>
+          <div class="field"><label>Age Verification</label>
+            <select id="setAgeVerify"><option value="true">Enabled</option><option value="false">Disabled</option></select>
+          </div>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
+    </div>
+  </div>
+</div>
+
+<!-- PRODUCT FORM MODAL -->
+<div class="modal-overlay" id="productModal">
+  <div class="modal">
+    <h3 id="productFormTitle">Add Product</h3>
+    <input type="hidden" id="prodEditId">
+    <div class="form-grid">
+      <div class="field"><label>Name</label><input type="text" id="prodName"></div>
+      <div class="field"><label>Price ($)</label><input type="number" step="0.01" id="prodPrice"></div>
+      <div class="field full"><label>Description</label><textarea id="prodDesc" rows="3"></textarea></div>
+      <div class="field"><label>Category</label>
+        <select id="prodCategory"><option>Flower</option><option>Pre-Rolls</option><option>Edibles</option><option>Tinctures</option><option>Topicals</option><option>Concentrates</option><option>Accessories</option><option>General</option></select>
+      </div>
+      <div class="field"><label>Strain Type</label>
+        <select id="prodStrain"><option value="">N/A</option><option>Indica</option><option>Sativa</option><option>Hybrid</option></select>
+      </div>
+      <div class="field"><label>THC Content</label><input type="text" id="prodTHC" placeholder="<0.3%"></div>
+      <div class="field"><label>CBD Content</label><input type="text" id="prodCBD" placeholder="18%"></div>
+      <div class="field"><label>Weight/Size</label><input type="text" id="prodWeight" placeholder="3.5g"></div>
+      <div class="field"><label>Stock</label><input type="number" id="prodStock" value="0"></div>
+      <div class="field"><label>Image URL</label><input type="text" id="prodImage" placeholder="https://..."></div>
+      <div class="field"><label>Featured</label>
+        <select id="prodFeatured"><option value="false">No</option><option value="true">Yes</option></select>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:16px">
+      <button class="btn btn-primary" onclick="saveProduct()">Save Product</button>
+      <button class="btn btn-secondary" onclick="closeProductForm()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+let adminToken = localStorage.getItem('aw_admin_token');
+let adminUser = null;
+let allProducts = [];
+let allOrders = [];
+let allCustomers = [];
+let currentAuthMode = 'login';
+
+// API helper
+async function api(path, options = {}) {
+  const opts = { headers: { 'Content-Type': 'application/json' }, ...options };
+  if (adminToken) opts.headers['Authorization'] = 'Bearer ' + adminToken;
+  const res = await fetch(path, opts);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Request failed');
+  return data;
+}
+
+// Init
+document.addEventListener('DOMContentLoaded', async () => {
+  try { await fetch('/api/db-init'); } catch {}
+  if (adminToken) {
+    try {
+      const data = await api('/api/auth?action=me');
+      if (data.user && data.user.role === 'admin') {
+        adminUser = data.user;
+        showAdmin();
+        return;
+      }
+    } catch {}
+    adminToken = null;
+    localStorage.removeItem('aw_admin_token');
+  }
+});
+
+function toggleAuthMode() {
+  if (currentAuthMode === 'login') {
+    currentAuthMode = 'register';
+    document.getElementById('loginForm').style.display = 'none';
+    document.getElementById('registerForm').style.display = 'block';
+    document.getElementById('toggleAuthText').innerHTML = 'Already have an account? <a href="#" onclick="event.preventDefault();toggleAuthMode()">Sign In</a>';
+  } else {
+    currentAuthMode = 'login';
+    document.getElementById('loginForm').style.display = 'block';
+    document.getElementById('registerForm').style.display = 'none';
+    document.getElementById('toggleAuthText').innerHTML = 'Need an account? <a href="#" onclick="event.preventDefault();toggleAuthMode()">Register</a>';
+  }
+}
+
+async function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const errEl = document.getElementById('loginError');
+  errEl.style.display = 'none';
+  if (!email || !password) { errEl.textContent = 'Please fill in all fields'; errEl.style.display = 'block'; return; }
+  try {
+    const data = await api('/api/auth?action=login', { method: 'POST', body: JSON.stringify({ email, password }) });
+    if (data.user.role !== 'admin') { errEl.textContent = 'Access denied. Admin accounts only.'; errEl.style.display = 'block'; return; }
+    adminToken = data.token;
+    localStorage.setItem('aw_admin_token', data.token);
+    adminUser = data.user;
+    showAdmin();
+  } catch (err) { errEl.textContent = err.message; errEl.style.display = 'block'; }
+}
+
+async function doRegister() {
+  const name = document.getElementById('regName').value.trim();
+  const email = document.getElementById('regEmail').value.trim();
+  const password = document.getElementById('regPassword').value;
+  const errEl = document.getElementById('regError');
+  errEl.style.display = 'none';
+  if (!name || !email || !password) { errEl.textContent = 'Please fill in all fields'; errEl.style.display = 'block'; return; }
+  try {
+    const data = await api('/api/auth?action=register', { method: 'POST', body: JSON.stringify({ email, password, name }) });
+    // New registrations are customers by default - inform user
+    errEl.textContent = 'Account created! However, admin access requires an admin role. Please contact the site owner.';
+    errEl.style.display = 'block';
+    errEl.style.background = 'rgba(57,255,20,.1)';
+    errEl.style.color = 'var(--green)';
+    // Switch back to login
+    setTimeout(() => toggleAuthMode(), 3000);
+  } catch (err) { errEl.textContent = err.message; errEl.style.display = 'block'; }
+}
+
+function showAdmin() {
+  document.getElementById('loginPage').style.display = 'none';
+  document.getElementById('adminLayout').style.display = 'block';
+  document.getElementById('welcomeMsg').textContent = 'Welcome, ' + (adminUser?.name || 'Admin');
+  loadDashboard();
+}
+
+function adminLogout() {
+  adminToken = null;
+  adminUser = null;
+  localStorage.removeItem('aw_admin_token');
+  document.getElementById('adminLayout').style.display = 'none';
+  document.getElementById('loginPage').style.display = 'flex';
+}
+
+// Sections
+function showSection(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById(name + 'View')?.classList.add('active');
+  document.querySelectorAll('.sidebar nav button').forEach(b => b.classList.remove('active'));
+  document.querySelector(`[data-section="${name}"]`)?.classList.add('active');
+  
+  if (name === 'dashboard') loadDashboard();
+  if (name === 'products') loadProducts();
+  if (name === 'orders') loadOrders();
+  if (name === 'customers') loadCustomers();
+  if (name === 'settings') loadSettings();
+}
+
+// Dashboard
+async function loadDashboard() {
+  try {
+    const [products, orders] = await Promise.all([
+      api('/api/products'),
+      api('/api/orders?all=true')
+    ]);
+    allProducts = products;
+    allOrders = orders;
+    
+    document.getElementById('statProducts').textContent = products.length;
+    document.getElementById('statOrders').textContent = orders.length;
+    const revenue = orders.reduce((s, o) => s + parseFloat(o.total || 0), 0);
+    document.getElementById('statRevenue').textContent = '$' + revenue.toFixed(2);
+    
+    // Count unique emails
+    const emails = new Set(orders.map(o => o.customer_email).filter(Boolean));
+    document.getElementById('statCustomers').textContent = emails.size;
+    
+    // Recent orders
+    const recent = orders.slice(0, 5);
+    document.getElementById('recentOrders').innerHTML = recent.length === 0
+      ? '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:30px">No orders yet</td></tr>'
+      : recent.map(o => `<tr>
+          <td>#${o.id}</td>
+          <td>${esc(o.customer_name || 'N/A')}</td>
+          <td style="color:var(--green);font-weight:600">$${parseFloat(o.total).toFixed(2)}</td>
+          <td><span class="status-badge status-${o.status}">${o.status}</span></td>
+          <td style="color:var(--text-dim)">${new Date(o.created_at).toLocaleDateString()}</td>
+        </tr>`).join('');
+  } catch (err) { console.error(err); }
+}
+
+// Products
+async function loadProducts() {
+  try {
+    allProducts = await api('/api/products');
+    document.getElementById('productsTable').innerHTML = allProducts.length === 0
+      ? '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:30px">No products</td></tr>'
+      : allProducts.map(p => `<tr>
+          <td><strong>${esc(p.name)}</strong></td>
+          <td>${esc(p.category || '')}</td>
+          <td style="color:var(--green);font-weight:600">$${parseFloat(p.price).toFixed(2)}</td>
+          <td>${p.stock}</td>
+          <td>${p.featured ? '⭐' : '—'}</td>
+          <td>
+            <button class="btn btn-secondary btn-sm" onclick="editProduct(${p.id})">Edit</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteProduct(${p.id})">Delete</button>
+          </td>
+        </tr>`).join('');
+  } catch (err) { console.error(err); }
+}
+
+function openProductForm(product = null) {
+  document.getElementById('productFormTitle').textContent = product ? 'Edit Product' : 'Add Product';
+  document.getElementById('prodEditId').value = product?.id || '';
+  document.getElementById('prodName').value = product?.name || '';
+  document.getElementById('prodPrice').value = product?.price || '';
+  document.getElementById('prodDesc').value = product?.description || '';
+  document.getElementById('prodCategory').value = product?.category || 'Flower';
+  document.getElementById('prodStrain').value = product?.strain_type || '';
+  document.getElementById('prodTHC').value = product?.thc_content || '';
+  document.getElementById('prodCBD').value = product?.cbd_content || '';
+  document.getElementById('prodWeight').value = product?.weight || '';
+  document.getElementById('prodStock').value = product?.stock ?? 0;
+  document.getElementById('prodImage').value = product?.image_url || '';
+  document.getElementById('prodFeatured').value = product?.featured ? 'true' : 'false';
+  document.getElementById('productModal').classList.add('show');
+}
+
+function closeProductForm() {
+  document.getElementById('productModal').classList.remove('show');
+}
+
+function editProduct(id) {
+  const p = allProducts.find(x => x.id === id);
+  if (p) openProductForm(p);
+}
+
+async function saveProduct() {
+  const id = document.getElementById('prodEditId').value;
+  const body = {
+    name: document.getElementById('prodName').value.trim(),
+    price: parseFloat(document.getElementById('prodPrice').value),
+    description: document.getElementById('prodDesc').value.trim(),
+    category: document.getElementById('prodCategory').value,
+    strain_type: document.getElementById('prodStrain').value,
+    thc_content: document.getElementById('prodTHC').value.trim(),
+    cbd_content: document.getElementById('prodCBD').value.trim(),
+    weight: document.getElementById('prodWeight').value.trim(),
+    stock: parseInt(document.getElementById('prodStock').value) || 0,
+    image_url: document.getElementById('prodImage').value.trim(),
+    featured: document.getElementById('prodFeatured').value === 'true'
+  };
+  if (!body.name || !body.price) { toast('Name and price are required', true); return; }
+  try {
+    if (id) {
+      await api('/api/products?id=' + id, { method: 'PUT', body: JSON.stringify(body) });
+    } else {
+      await api('/api/products', { method: 'POST', body: JSON.stringify(body) });
+    }
+    closeProductForm();
+    loadProducts();
+    toast('Product saved!');
+  } catch (err) { toast('Error: ' + err.message, true); }
+}
+
+async function deleteProduct(id) {
+  if (!confirm('Delete this product?')) return;
+  try {
+    await api('/api/products?id=' + id, { method: 'DELETE' });
+    loadProducts();
+    toast('Product deleted');
+  } catch (err) { toast('Error: ' + err.message, true); }
+}
+
+// Orders
+async function loadOrders() {
+  try {
+    allOrders = await api('/api/orders?all=true');
+    document.getElementById('ordersTable').innerHTML = allOrders.length === 0
+      ? '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:30px">No orders</td></tr>'
+      : allOrders.map(o => `<tr>
+          <td>#${o.id}</td>
+          <td>${esc(o.customer_name || 'N/A')}</td>
+          <td style="color:var(--text-dim)">${esc(o.customer_email || '')}</td>
+          <td style="color:var(--green);font-weight:600">$${parseFloat(o.total).toFixed(2)}</td>
+          <td><span class="status-badge status-${o.status}">${o.status}</span></td>
+          <td style="color:var(--text-dim)">${new Date(o.created_at).toLocaleDateString()}</td>
+          <td>
+            <select onchange="updateOrderStatus(${o.id}, this.value)" style="padding:6px 10px;font-size:.8rem;width:auto">
+              <option ${o.status==='pending'?'selected':''}>pending</option>
+              <option ${o.status==='shipped'?'selected':''}>shipped</option>
+              <option ${o.status==='delivered'?'selected':''}>delivered</option>
+              <option ${o.status==='cancelled'?'selected':''}>cancelled</option>
+            </select>
+          </td>
+        </tr>`).join('');
+  } catch (err) { console.error(err); }
+}
+
+async function updateOrderStatus(id, status) {
+  try {
+    await api('/api/orders?id=' + id, { method: 'PUT', body: JSON.stringify({ status }) });
+    toast('Order updated');
+  } catch (err) { toast('Error: ' + err.message, true); }
+}
+
+// Customers
+async function loadCustomers() {
+  try {
+    // We'll use a dedicated endpoint or just get from orders
+    allCustomers = await api('/api/customers');
+    renderCustomers();
+  } catch {
+    document.getElementById('customersTable').innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:30px">Customer data unavailable</td></tr>';
+  }
+}
+
+function renderCustomers() {
+  document.getElementById('customersTable').innerHTML = allCustomers.length === 0
+    ? '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:30px">No customers</td></tr>'
+    : allCustomers.map(c => `<tr>
+        <td>${esc(c.name)}</td>
+        <td style="color:var(--text-dim)">${esc(c.email)}</td>
+        <td><span class="status-badge ${c.role==='admin'?'status-shipped':'status-pending'}">${c.role}</span></td>
+        <td style="color:var(--text-dim)">${new Date(c.created_at).toLocaleDateString()}</td>
+      </tr>`).join('');
+}
+
+// Settings
+async function loadSettings() {
+  try {
+    const s = await api('/api/settings');
+    document.getElementById('setStoreName').value = s.store_name || '';
+    document.getElementById('setTagline').value = s.store_tagline || '';
+    document.getElementById('setEmail').value = s.store_email || '';
+    document.getElementById('setPhone').value = s.store_phone || '';
+    document.getElementById('setShipping').value = s.shipping_flat_rate || '5.99';
+    document.getElementById('setFreeShip').value = s.free_shipping_threshold || '75';
+    document.getElementById('setTax').value = s.tax_rate || '0';
+    document.getElementById('setAgeVerify').value = s.age_verification || 'true';
+  } catch (err) { console.error(err); }
+}
+
+async function saveSettings() {
+  try {
+    await api('/api/settings', { method: 'PUT', body: JSON.stringify({
+      store_name: document.getElementById('setStoreName').value,
+      store_tagline: document.getElementById('setTagline').value,
+      store_email: document.getElementById('setEmail').value,
+      store_phone: document.getElementById('setPhone').value,
+      shipping_flat_rate: document.getElementById('setShipping').value,
+      free_shipping_threshold: document.getElementById('setFreeShip').value,
+      tax_rate: document.getElementById('setTax').value,
+      age_verification: document.getElementById('setAgeVerify').value
+    })});
+    toast('Settings saved!');
+  } catch (err) { toast('Error: ' + err.message, true); }
+}
+
+// Utils
+function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+function toast(msg, isError = false) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.background = isError ? 'var(--danger)' : 'var(--green)';
+  el.style.color = isError ? '#fff' : '#000';
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>
