@@ -340,6 +340,14 @@ tr:hover td{background:rgba(255,255,255,.02)}
           </div>
         </div>
       </div>
+      <div class="panel">
+        <h3>Crypto Wallet Addresses</h3>
+        <p style="color:var(--text-dim);font-size:.82rem;margin-bottom:16px">These addresses are shown to customers at checkout when they select crypto payment. A QR code is generated automatically.</p>
+        <div class="form-grid">
+          <div class="field full"><label>Bitcoin (BTC) Wallet Address</label><input type="text" id="setWalletBtc" placeholder="bc1q..." style="font-family:monospace;font-size:.85rem"></div>
+          <div class="field full"><label>Monero (XMR) Wallet Address</label><input type="text" id="setWalletXmr" placeholder="4..." style="font-family:monospace;font-size:.85rem"></div>
+        </div>
+      </div>
       <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
     </div>
   </div>
@@ -782,6 +790,8 @@ async function loadSettings() {
     document.getElementById('setFreeShip').value = s.free_shipping_threshold || '75';
     document.getElementById('setTax').value = s.tax_rate || '0';
     document.getElementById('setAgeVerify').value = s.age_verification || 'true';
+    document.getElementById('setWalletBtc').value = s.wallet_btc || '';
+    document.getElementById('setWalletXmr').value = s.wallet_xmr || '';
   } catch (err) { console.error(err); }
 }
 
@@ -795,7 +805,9 @@ async function saveSettings() {
       shipping_flat_rate: document.getElementById('setShipping').value,
       free_shipping_threshold: document.getElementById('setFreeShip').value,
       tax_rate: document.getElementById('setTax').value,
-      age_verification: document.getElementById('setAgeVerify').value
+      age_verification: document.getElementById('setAgeVerify').value,
+      wallet_btc: document.getElementById('setWalletBtc').value,
+      wallet_xmr: document.getElementById('setWalletXmr').value
     })});
     toast('Settings saved!');
   } catch (err) { toast('Error: ' + err.message, true); }
