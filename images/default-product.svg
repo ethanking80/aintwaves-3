@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#1a1a2e"/>
+      <stop offset="100%" stop-color="#0a0a12"/>
+    </radialGradient>
+    <linearGradient id="leaf" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#39ff14"/>
+      <stop offset="100%" stop-color="#2bcc10"/>
+    </linearGradient>
+    <linearGradient id="glow" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#39ff14" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#39ff14" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="400" fill="url(#bg)"/>
+  <circle cx="200" cy="185" r="100" fill="url(#glow)"/>
+  <g transform="translate(200,195)" fill="url(#leaf)" opacity="0.85">
+    <path d="M0,-80 C12,-50 8,-20 0,15 C-8,-20 -12,-50 0,-80Z"/>
+    <path d="M0,15 C-20,-35 -50,-55 -72,-65 C-45,-42 -20,-12 0,15Z"/>
+    <path d="M0,15 C-28,-18 -62,-32 -82,-35 C-55,-18 -28,0 0,15Z"/>
+    <path d="M0,15 C-30,-2 -60,-6 -78,-2 C-55,2 -28,8 0,15Z"/>
+    <path d="M0,15 C20,-35 50,-55 72,-65 C45,-42 20,-12 0,15Z"/>
+    <path d="M0,15 C28,-18 62,-32 82,-35 C55,-18 28,0 0,15Z"/>
+    <path d="M0,15 C30,-2 60,-6 78,-2 C55,2 28,8 0,15Z"/>
+    <rect x="-3" y="15" width="6" height="40" rx="3"/>
+  </g>
+  <text x="200" y="290" text-anchor="middle" fill="#39ff14" font-family="Arial,sans-serif" font-size="14" font-weight="600" letter-spacing="4" opacity="0.5">AIRWAVES</text>
+  <text x="200" y="310" text-anchor="middle" fill="#9898a8" font-family="Arial,sans-serif" font-size="11" letter-spacing="2" opacity="0.4">PREMIUM HEMP</text>
+</svg>

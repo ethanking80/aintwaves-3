@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AIRWAVES - Premium Hemp Products</title>
-<link rel="icon" type="image/jpeg" href="/images/logo.jpg">
+<link rel="icon" type="image/svg+xml" href="/images/logo.svg">
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -212,7 +212,7 @@ footer .footer-links a:hover{color:var(--green)}
 
 <!-- AGE VERIFICATION GATE -->
 <div class="age-gate" id="ageGate">
-  <img src="/images/logo.jpg" alt="AIRWAVES">
+  <img src="/images/logo.svg" alt="AIRWAVES">
   <h1>((( AIRWAVES )))</h1>
   <p>Premium Hemp Products — You must be 21 or older to enter this site. By entering, you confirm you meet the age requirement in your jurisdiction.</p>
   <div class="age-buttons">
@@ -225,7 +225,7 @@ footer .footer-links a:hover{color:var(--green)}
 <header id="mainHeader" style="display:none">
   <div class="header-inner">
     <div class="logo-area" onclick="showView('shop')">
-      <img src="/images/logo.jpg" alt="AIRWAVES">
+      <img src="/images/logo.svg" alt="AIRWAVES">
       <span>AIRWAVES</span>
     </div>
     <nav>
@@ -479,7 +479,7 @@ function renderProducts() {
     <div class="product-card" onclick="openProduct(${p.id})">
       ${p.featured ? '<div class="badge">Featured</div>' : ''}
       <div class="product-img">
-        ${p.image_url ? `<img src="${p.image_url}" alt="${esc(p.name)}">` : '<div class="placeholder-icon">🌿</div>'}
+        ${p.image_url ? `<img src="${p.image_url}" alt="${esc(p.name)}" onerror="this.onerror=null;this.src='/images/default-product.svg'">` : `<img src="/images/default-product.svg" alt="${esc(p.name)}">`}
       </div>
       <div class="product-info">
         <div class="cat">${esc(p.category || '')}</div>
@@ -503,9 +503,9 @@ function openProduct(id) {
   const p = products.find(x => x.id === id);
   if (!p) return;
   modalQty = 1;
-  document.getElementById('modalImg').innerHTML = p.image_url 
-    ? `<img src="${p.image_url}" alt="${esc(p.name)}">` 
-    : '<div style="font-size:5rem;opacity:.15">🌿</div>';
+  document.getElementById('modalImg').innerHTML = p.image_url
+    ? `<img src="${p.image_url}" alt="${esc(p.name)}" onerror="this.onerror=null;this.src='/images/default-product.svg'">`
+    : `<img src="/images/default-product.svg" alt="${esc(p.name)}">`;
   
   const stockClass = p.stock > 10 ? 'in-stock' : p.stock > 0 ? 'low-stock' : 'out-stock';
   const stockText = p.stock > 10 ? 'In Stock' : p.stock > 0 ? `Only ${p.stock} left` : 'Out of Stock';
@@ -608,7 +608,7 @@ function updateCartUI() {
     div.className = 'cart-item';
     div.innerHTML = `
       <div class="cart-item-img">
-        ${item.image_url ? `<img src="${item.image_url}" alt="">` : '🌿'}
+        ${item.image_url ? `<img src="${item.image_url}" alt="" onerror="this.onerror=null;this.src='/images/default-product.svg'">` : `<img src="/images/default-product.svg" alt="">`}
       </div>
       <div class="cart-item-info">
         <h4>${esc(item.name)}</h4>
