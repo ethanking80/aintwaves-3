@@ -1,762 +1,487 @@
 import { neon } from '@neondatabase/serverless';
+import crypto from 'crypto';
 
-const sql = neon(process.env.DATABASE_URL);
+const sql = neon(process.env.NETLIFY_DATABASE_URL || process.env.DATABASE_URL);
 
-// Simple helpers
-const json = (data, status = 200, headers = {}) => ({
+const json = (data, status = 200) => ({
   statusCode: status,
-  headers: { 'Content-Type': 'application/json', ...headers },
+  headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': '*', 'Access-Control-Allow-Headers': '*' },
   body: JSON.stringify(data)
 });
 
-const parseCookies = (str) => {
-  const cookies = {};
-  if (str) {
-    str.split(';').forEach(c => {
-      const [k, ...v] = c.split('=');
-      if (k) cookies[k.trim()] = v.join('=');
-    });
-  }
-  return cookies;
-};
+function genToken() { return crypto.randomBytes(32).toString('hex'); }
 
-const genId = () => 's' + Date.now().toString(36) + Math.random().toString(36).slice(2);
-const COOKIE_NAME = 'airwaves_sid';
-const DAY = 86400000;
-
-// Session helpers
-async function getSession(event) {
-  const sid = parseCookies(event.headers?.cookie)[COOKIE_NAME];
-  if (!sid) return null;
-  const [session] = await sql`SELECT * FROM sessions WHERE id = ${sid} AND expires_at > NOW()`;
-  return session || null;
+async function getUserByToken(token) {
+  if (!token) return null;
+  try {
+    const [session] = await sql`SELECT * FROM sessions WHERE id = ${token} AND expires_at > NOW()`;
+    if (!session) return null;
+    if (session.is_admin) return { id: 'admin', name: 'Admin', email: 'admin@airwaves.com', role: 'admin', _isAdmin: true };
+    const [user] = await sql`SELECT * FROM customers WHERE id = ${session.customer_id}`;
+    return user || null;
+  } catch { return null; }
 }
 
-async function createSession(customerId, isAdmin) {
-  const id = genId();
-  const expires = new Date(Date.now() + DAY);
-  await sql`INSERT INTO sessions (id, customer_id, is_admin, expires_at) VALUES (${id}, ${customerId}, ${isAdmin}, ${expires})`;
-  return id;
+async function requireAdmin(token) {
+  const user = await getUserByToken(token);
+  return (user && user._isAdmin) ? user : null;
 }
 
-// Main handler
+let logTableReady = false;
+async function ensureLogTable() {
+  if (logTableReady) return;
+  try {
+    await sql`CREATE TABLE IF NOT EXISTS activity_log (
+      id SERIAL PRIMARY KEY, action VARCHAR(100) NOT NULL, category VARCHAR(50) NOT NULL,
+      actor VARCHAR(255) DEFAULT 'system', target VARCHAR(255) DEFAULT '', details TEXT DEFAULT '',
+      ip VARCHAR(50) DEFAULT '', created_at TIMESTAMP DEFAULT NOW()
+    )`;
+    logTableReady = true;
+  } catch {}
+}
+
+async function log(action, category, actor, target, details, ip) {
+  try {
+    await ensureLogTable();
+    await sql`INSERT INTO activity_log (action, category, actor, target, details, ip) VALUES (${action}, ${category}, ${actor || 'system'}, ${target || ''}, ${details || ''}, ${ip || ''})`;
+  } catch (e) { console.error('Log error:', e.message); }
+}
+
 export async function handler(event) {
   const method = event.httpMethod;
-  const path = event.path.replace('/.netlify/functions/api', '').replace('/api', '') || '/';
-  
-  console.log(`${method} ${path}`);
-  
-  // CORS
+  const rawPath = event.path.replace('/.netlify/functions/api', '').replace('/api', '') || '/';
+  const params = event.queryStringParameters || {};
+  const sessionId = params.session || 'guest';
+  const clientIp = event.headers?.['x-forwarded-for']?.split(',')[0]?.trim() || event.headers?.['client-ip'] || '';
+
   if (method === 'OPTIONS') {
     return { statusCode: 204, headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': '*', 'Access-Control-Allow-Headers': '*' }};
   }
 
+  const authHeader = event.headers?.authorization || '';
+  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+
   try {
-    // ===== AUTH ROUTES =====
-    
-    if (path === '/auth/me' && method === 'GET') {
-      const session = await getSession(event);
-      if (!session) return json({ loggedIn: false, isGuest: true });
-      if (session.is_admin) return json({ loggedIn: true, isAdmin: true, username: 'Admin' });
-      
-      const [customer] = await sql`SELECT * FROM customers WHERE id = ${session.customer_id}`;
-      if (!customer) return json({ loggedIn: false, isGuest: true });
-      
-      return json({ loggedIn: true, user: { id: customer.id, username: customer.username, email: customer.email, phone: customer.phone, address: customer.address, city: customer.city, state: customer.state, zip: customer.zip }});
-    }
+    // ===== AUTH =====
+    if (rawPath === '/auth') {
+      const action = params.action;
 
-    if (path === '/auth/login' && method === 'POST') {
-      const { username, password } = JSON.parse(event.body || '{}');
-      const oldSid = parseCookies(event.headers?.cookie)[COOKIE_NAME];
-      
-      // Admin login
-      if (username === 'admin' && password === 'airwaves1') {
-        const sid = await createSession(null, true);
-        // Transfer cart from old session
-        if (oldSid) {
-          await sql`UPDATE cart_items SET session_id = ${sid} WHERE session_id = ${oldSid}`;
-          await sql`DELETE FROM sessions WHERE id = ${oldSid}`;
+      if (action === 'me' && method === 'GET') {
+        const user = await getUserByToken(token);
+        if (!user) return json({ user: null });
+        return json({ user: { id: user.id, name: user.name || user.username, email: user.email, role: user._isAdmin ? 'admin' : 'customer' } });
+      }
+
+      if (action === 'login' && method === 'POST') {
+        const { email, password } = JSON.parse(event.body || '{}');
+        if (!email || !password) return json({ error: 'Email and password required' }, 400);
+
+        // Admin login
+        if ((email === 'admin' || email === 'admin@airwaves.com') && password === 'airwaves1') {
+          const tok = genToken();
+          const expires = new Date(Date.now() + 86400000);
+          await sql`INSERT INTO sessions (id, customer_id, is_admin, expires_at) VALUES (${tok}, NULL, true, ${expires})`;
+          await log('login', 'auth', 'admin', 'admin@airwaves.com', 'Admin login successful', clientIp);
+          return json({ token: tok, user: { id: 'admin', name: 'Admin', email: 'admin@airwaves.com', role: 'admin' } });
         }
-        return {
-          statusCode: 200,
-          headers: { 'Content-Type': 'application/json', 'Set-Cookie': `${COOKIE_NAME}=${sid}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400` },
-          body: JSON.stringify({ success: true, isAdmin: true })
-        };
-      }
-      
-      // Customer login
-      const [customer] = await sql`SELECT * FROM customers WHERE (LOWER(username) = LOWER(${username}) OR LOWER(email) = LOWER(${username})) AND password = ${password}`;
-      if (!customer) return json({ error: 'Invalid credentials' }, 401);
-      
-      const sid = await createSession(customer.id, false);
-      // Transfer cart from old session
-      if (oldSid) {
-        await sql`UPDATE cart_items SET session_id = ${sid} WHERE session_id = ${oldSid}`;
-        await sql`DELETE FROM sessions WHERE id = ${oldSid}`;
-      }
-      return {
-        statusCode: 200,
-        headers: { 'Content-Type': 'application/json', 'Set-Cookie': `${COOKIE_NAME}=${sid}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400` },
-        body: JSON.stringify({ success: true, user: { id: customer.id, username: customer.username, email: customer.email }})
-      };
-    }
 
-    if (path === '/auth/register' && method === 'POST') {
-      const { username, email, password } = JSON.parse(event.body || '{}');
-      if (!username || !email || !password) return json({ error: 'All fields required' }, 400);
-      
-      const [existing] = await sql`SELECT id FROM customers WHERE LOWER(email) = LOWER(${email}) OR LOWER(username) = LOWER(${username})`;
-      if (existing) return json({ error: 'Username or email already exists' }, 400);
-      
-      const oldSid = parseCookies(event.headers?.cookie)[COOKIE_NAME];
-      const id = 'c' + Date.now().toString(36);
-      await sql`INSERT INTO customers (id, username, email, password, age_verified) VALUES (${id}, ${username}, ${email}, ${password}, true)`;
-      
-      const sid = await createSession(id, false);
-      // Transfer cart from old session
-      if (oldSid) {
-        await sql`UPDATE cart_items SET session_id = ${sid} WHERE session_id = ${oldSid}`;
-        await sql`DELETE FROM sessions WHERE id = ${oldSid}`;
-      }
-      return {
-        statusCode: 200,
-        headers: { 'Content-Type': 'application/json', 'Set-Cookie': `${COOKIE_NAME}=${sid}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400` },
-        body: JSON.stringify({ success: true, user: { id, username, email }})
-      };
-    }
+        const [user] = await sql`SELECT * FROM customers WHERE (LOWER(email) = LOWER(${email}) OR LOWER(username) = LOWER(${email})) AND password = ${password}`;
+        if (!user) {
+          await log('login_failed', 'auth', email, email, 'Invalid credentials', clientIp);
+          return json({ error: 'Invalid credentials' }, 401);
+        }
 
-    if (path === '/auth/logout' && method === 'POST') {
-      const session = await getSession(event);
-      if (session) {
-        await sql`DELETE FROM sessions WHERE id = ${session.id}`;
-        await sql`DELETE FROM inventory_locks WHERE session_id = ${session.id}`;
-      }
-      return {
-        statusCode: 200,
-        headers: { 'Content-Type': 'application/json', 'Set-Cookie': `${COOKIE_NAME}=; Path=/; Max-Age=0` },
-        body: '{"success":true}'
-      };
-    }
+        const tok = genToken();
+        const expires = new Date(Date.now() + 86400000);
+        await sql`INSERT INTO sessions (id, customer_id, is_admin, expires_at) VALUES (${tok}, ${user.id}, false, ${expires})`;
+        try { await sql`UPDATE cart_items SET session_id = ${tok} WHERE session_id = ${sessionId}`; } catch {}
 
-    if (path === '/auth/profile' && method === 'PUT') {
-      const session = await getSession(event);
-      if (!session?.customer_id) return json({ error: 'Not logged in' }, 401);
-      
-      const data = JSON.parse(event.body || '{}');
-      await sql`UPDATE customers SET 
-        name = COALESCE(${data.name}, name),
-        phone = COALESCE(${data.phone}, phone),
-        address = COALESCE(${data.address}, address),
-        city = COALESCE(${data.city}, city),
-        state = COALESCE(${data.state}, state),
-        zip = COALESCE(${data.zip}, zip)
-        WHERE id = ${session.customer_id}`;
-      
-      const [customer] = await sql`SELECT * FROM customers WHERE id = ${session.customer_id}`;
-      return json({ success: true, user: customer });
+        await log('login', 'auth', user.name || user.username, user.email, 'Customer login successful', clientIp);
+        return json({ token: tok, user: { id: user.id, name: user.name || user.username, email: user.email, role: 'customer' } });
+      }
+
+      if (action === 'register' && method === 'POST') {
+        const { email, password, name } = JSON.parse(event.body || '{}');
+        if (!email || !password || !name) return json({ error: 'All fields required' }, 400);
+
+        const [existing] = await sql`SELECT id FROM customers WHERE LOWER(email) = LOWER(${email})`;
+        if (existing) {
+          await log('register_failed', 'auth', name, email, 'Email already exists', clientIp);
+          return json({ error: 'Email already exists' }, 400);
+        }
+
+        const id = 'c' + Date.now().toString(36);
+        await sql`INSERT INTO customers (id, username, email, password, name, age_verified) VALUES (${id}, ${name}, ${email}, ${password}, ${name}, true)`;
+
+        const tok = genToken();
+        const expires = new Date(Date.now() + 86400000);
+        await sql`INSERT INTO sessions (id, customer_id, is_admin, expires_at) VALUES (${tok}, ${id}, false, ${expires})`;
+        try { await sql`UPDATE cart_items SET session_id = ${tok} WHERE session_id = ${sessionId}`; } catch {}
+
+        await log('register', 'auth', name, email, `New customer account created (${id})`, clientIp);
+        return json({ token: tok, user: { id, name, email, role: 'customer' } });
+      }
+
+      if (action === 'logout' && method === 'POST') {
+        const user = await getUserByToken(token);
+        if (user) {
+          await log('logout', 'auth', user.name || user.username || 'admin', user.email, 'User logged out', clientIp);
+        }
+        if (token) {
+          try { await sql`DELETE FROM sessions WHERE id = ${token}`; } catch {}
+        }
+        return json({ success: true });
+      }
+
+      return json({ error: 'Unknown auth action' }, 400);
     }
 
     // ===== PRODUCTS =====
-    
-    if (path === '/products' && method === 'GET') {
-      const products = await sql`SELECT * FROM products ORDER BY id`;
-      const categories = await sql`SELECT * FROM categories ORDER BY id`;
-      
-      // Clean expired locks
-      await sql`DELETE FROM inventory_locks WHERE expires_at < NOW()`;
-      
-      // Get session for excluding own locks
-      const session = await getSession(event);
-      const sid = session?.id || 'none';
-      
-      const result = [];
-      for (const p of products) {
-        const [lockInfo] = await sql`SELECT COALESCE(SUM(quantity), 0)::int as locked FROM inventory_locks WHERE product_id = ${p.id} AND session_id != ${sid}`;
-        result.push({
-          ...p,
-          price: parseFloat(p.price),
-          availableStock: p.stock - (lockInfo?.locked || 0)
-        });
+    if (rawPath === '/products') {
+      if (method === 'GET') {
+        const products = await sql`SELECT * FROM products ORDER BY id`;
+        return json(products.map(p => ({
+          id: p.id, name: p.name, description: p.description || '',
+          price: parseFloat(p.price), image_url: p.image_url || p.image || '',
+          category: p.category || '', strain_type: p.strain_type || '',
+          thc_content: p.thc_content || p.thc || '', cbd_content: p.cbd_content || p.cbd || '',
+          weight: p.weight || '', stock: p.stock || 0,
+          featured: p.featured || false, active: p.active !== false,
+          created_at: p.created_at
+        })));
       }
-      
-      return json({ products: result, categories });
+
+      if (method === 'POST') {
+        const admin = await requireAdmin(token);
+        if (!admin) return json({ error: 'Admin only' }, 403);
+        const d = JSON.parse(event.body || '{}');
+        const [product] = await sql`
+          INSERT INTO products (name, category, price, strain_type, thc_content, cbd_content, weight, description, stock, image_url, featured)
+          VALUES (${d.name || 'New Product'}, ${d.category || 'Flower'}, ${d.price || 0}, ${d.strain_type || ''}, ${d.thc_content || ''}, ${d.cbd_content || ''}, ${d.weight || ''}, ${d.description || ''}, ${d.stock || 0}, ${d.image_url || ''}, ${d.featured || false})
+          RETURNING *
+        `;
+        await log('product_created', 'product', 'Admin', d.name, `New product: ${d.name} @ $${d.price}, stock: ${d.stock || 0}, category: ${d.category || 'Flower'}`, clientIp);
+        return json({ success: true, product });
+      }
+
+      if (method === 'PUT') {
+        const pid = parseInt(params.id);
+        if (!pid) return json({ error: 'Missing product id' }, 400);
+        const d = JSON.parse(event.body || '{}');
+        const changes = [];
+        if (d.name !== undefined) { await sql`UPDATE products SET name = ${d.name} WHERE id = ${pid}`; changes.push(`name="${d.name}"`); }
+        if (d.price !== undefined) { await sql`UPDATE products SET price = ${d.price} WHERE id = ${pid}`; changes.push(`price=$${d.price}`); }
+        if (d.description !== undefined) { await sql`UPDATE products SET description = ${d.description} WHERE id = ${pid}`; changes.push('description updated'); }
+        if (d.category !== undefined) { await sql`UPDATE products SET category = ${d.category} WHERE id = ${pid}`; changes.push(`category="${d.category}"`); }
+        if (d.strain_type !== undefined) { await sql`UPDATE products SET strain_type = ${d.strain_type} WHERE id = ${pid}`; changes.push(`strain="${d.strain_type}"`); }
+        if (d.thc_content !== undefined) { await sql`UPDATE products SET thc_content = ${d.thc_content} WHERE id = ${pid}`; changes.push(`thc="${d.thc_content}"`); }
+        if (d.cbd_content !== undefined) { await sql`UPDATE products SET cbd_content = ${d.cbd_content} WHERE id = ${pid}`; changes.push(`cbd="${d.cbd_content}"`); }
+        if (d.weight !== undefined) { await sql`UPDATE products SET weight = ${d.weight} WHERE id = ${pid}`; changes.push(`weight="${d.weight}"`); }
+        if (d.stock !== undefined) { await sql`UPDATE products SET stock = ${d.stock} WHERE id = ${pid}`; changes.push(`stock=${d.stock}`); }
+        if (d.image_url !== undefined) { await sql`UPDATE products SET image_url = ${d.image_url} WHERE id = ${pid}`; changes.push('image updated'); }
+        if (d.featured !== undefined) { await sql`UPDATE products SET featured = ${d.featured} WHERE id = ${pid}`; changes.push(`featured=${d.featured}`); }
+        const actor = (await getUserByToken(token))?.name || 'system';
+        await log('product_updated', 'product', actor, `product #${pid}`, changes.join(', '), clientIp);
+        return json({ success: true });
+      }
+
+      if (method === 'DELETE') {
+        const admin = await requireAdmin(token);
+        if (!admin) return json({ error: 'Admin only' }, 403);
+        const pid = parseInt(params.id);
+        if (!pid) return json({ error: 'Missing product id' }, 400);
+        const [p] = await sql`SELECT name FROM products WHERE id = ${pid}`;
+        await sql`DELETE FROM cart_items WHERE product_id = ${pid}`;
+        await sql`DELETE FROM products WHERE id = ${pid}`;
+        await log('product_deleted', 'product', 'Admin', p?.name || `#${pid}`, `Product removed from catalog`, clientIp);
+        return json({ success: true });
+      }
     }
 
     // ===== CART =====
-    
-    if (path === '/cart' && method === 'GET') {
-      const session = await getSession(event);
-      const sid = session?.id || parseCookies(event.headers?.cookie)[COOKIE_NAME] || 'guest';
-      
-      const items = await sql`
-        SELECT ci.*, p.name, p.price, p.category, p.weight, p.image 
-        FROM cart_items ci 
-        JOIN products p ON ci.product_id = p.id 
-        WHERE ci.session_id = ${sid}
-      `;
-      
-      return json({ 
-        cart: items.map(i => ({
-          productId: i.product_id,
-          name: i.name,
-          price: parseFloat(i.price),
-          category: i.category,
-          weight: i.weight,
-          image: i.image,
-          qty: i.quantity
-        }))
-      });
-    }
+    if (rawPath === '/cart') {
+      const user = await getUserByToken(token);
+      const sid = user ? token : sessionId;
+      const actorName = user ? (user.name || user.username || 'customer') : `guest(${sessionId.slice(0,8)})`;
 
-    if (path === '/cart' && method === 'POST') {
-      let session = await getSession(event);
-      let sid = session?.id;
-      let newCookie = null;
-      
-      // Create session if needed
-      if (!sid) {
-        sid = await createSession(null, false);
-        newCookie = `${COOKIE_NAME}=${sid}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400`;
-      }
-      
-      const { productId, qty = 1 } = JSON.parse(event.body || '{}');
-      
-      // Check product exists
-      const [product] = await sql`SELECT * FROM products WHERE id = ${productId}`;
-      if (!product) return json({ error: 'Product not found' }, 404);
-      
-      // Check stock
-      const [lockInfo] = await sql`SELECT COALESCE(SUM(quantity), 0)::int as locked FROM inventory_locks WHERE product_id = ${productId} AND session_id != ${sid}`;
-      const [cartInfo] = await sql`SELECT COALESCE(quantity, 0)::int as qty FROM cart_items WHERE session_id = ${sid} AND product_id = ${productId}`;
-      
-      const available = product.stock - (lockInfo?.locked || 0);
-      const currentQty = cartInfo?.qty || 0;
-      
-      if (currentQty + qty > available) {
-        return json({ error: `Only ${available} available` }, 400);
-      }
-      
-      // Add to cart (upsert)
-      await sql`
-        INSERT INTO cart_items (session_id, product_id, quantity) 
-        VALUES (${sid}, ${productId}, ${qty})
-        ON CONFLICT (session_id, product_id) 
-        DO UPDATE SET quantity = cart_items.quantity + ${qty}
-      `;
-      
-      // Get updated cart
-      const items = await sql`
-        SELECT ci.*, p.name, p.price, p.category, p.weight, p.image 
-        FROM cart_items ci 
-        JOIN products p ON ci.product_id = p.id 
-        WHERE ci.session_id = ${sid}
-      `;
-      
-      const response = json({ 
-        success: true, 
-        cart: items.map(i => ({
-          productId: i.product_id,
-          name: i.name,
-          price: parseFloat(i.price),
-          category: i.category,
-          weight: i.weight,
-          image: i.image,
-          qty: i.quantity
-        }))
-      });
-      
-      if (newCookie) {
-        response.headers['Set-Cookie'] = newCookie;
-      }
-      
-      return response;
-    }
+      const getCart = async () => {
+        const items = await sql`
+          SELECT ci.id, ci.product_id, ci.quantity, p.name, p.price, p.category, p.weight,
+                 COALESCE(p.image_url, p.image, '') as image_url
+          FROM cart_items ci JOIN products p ON ci.product_id = p.id WHERE ci.session_id = ${sid}
+        `;
+        const total = items.reduce((s, i) => s + parseFloat(i.price) * i.quantity, 0);
+        return {
+          items: items.map(i => ({ id: i.id, product_id: i.product_id, name: i.name, price: parseFloat(i.price), category: i.category, weight: i.weight, image_url: i.image_url, quantity: i.quantity })),
+          total: total.toFixed(2),
+          count: items.reduce((s, i) => s + i.quantity, 0)
+        };
+      };
 
-    // Cart item operations (PUT/DELETE)
-    const cartMatch = path.match(/^\/cart\/(\d+)$/);
-    if (cartMatch) {
-      const productId = parseInt(cartMatch[1]);
-      const session = await getSession(event);
-      const sid = session?.id || parseCookies(event.headers?.cookie)[COOKIE_NAME];
-      
-      if (!sid) return json({ error: 'No cart' }, 404);
-      
-      if (method === 'PUT') {
-        const { qty } = JSON.parse(event.body || '{}');
-        if (qty <= 0) {
-          await sql`DELETE FROM cart_items WHERE session_id = ${sid} AND product_id = ${productId}`;
+      if (method === 'GET') return json(await getCart());
+
+      if (method === 'POST') {
+        const { product_id, quantity = 1 } = JSON.parse(event.body || '{}');
+        const [product] = await sql`SELECT * FROM products WHERE id = ${product_id}`;
+        if (!product) return json({ error: 'Product not found' }, 404);
+        await sql`
+          INSERT INTO cart_items (session_id, product_id, quantity) VALUES (${sid}, ${product_id}, ${quantity})
+          ON CONFLICT (session_id, product_id) DO UPDATE SET quantity = cart_items.quantity + ${quantity}
+        `;
+        await log('cart_add', 'cart', actorName, product.name, `Added ${quantity}x ${product.name} ($${parseFloat(product.price).toFixed(2)} ea)`, clientIp);
+        return json(await getCart());
+      }
+
+      const itemId = params.id;
+      if (itemId && method === 'PUT') {
+        const { quantity } = JSON.parse(event.body || '{}');
+        const [item] = await sql`SELECT ci.*, p.name FROM cart_items ci JOIN products p ON ci.product_id = p.id WHERE ci.id = ${itemId}`;
+        if (quantity <= 0) {
+          await sql`DELETE FROM cart_items WHERE id = ${itemId} AND session_id = ${sid}`;
+          await log('cart_remove', 'cart', actorName, item?.name || `item#${itemId}`, `Removed from cart (qty set to 0)`, clientIp);
         } else {
-          await sql`UPDATE cart_items SET quantity = ${qty} WHERE session_id = ${sid} AND product_id = ${productId}`;
+          await sql`UPDATE cart_items SET quantity = ${quantity} WHERE id = ${itemId} AND session_id = ${sid}`;
+          await log('cart_update', 'cart', actorName, item?.name || `item#${itemId}`, `Quantity changed to ${quantity}`, clientIp);
         }
-      } else if (method === 'DELETE') {
-        await sql`DELETE FROM cart_items WHERE session_id = ${sid} AND product_id = ${productId}`;
       }
-      
-      const items = await sql`
-        SELECT ci.*, p.name, p.price, p.category, p.weight, p.image 
-        FROM cart_items ci 
-        JOIN products p ON ci.product_id = p.id 
-        WHERE ci.session_id = ${sid}
-      `;
-      
-      return json({ 
-        success: true, 
-        cart: items.map(i => ({
-          productId: i.product_id,
-          name: i.name,
-          price: parseFloat(i.price),
-          category: i.category,
-          weight: i.weight,
-          image: i.image,
-          qty: i.quantity
-        }))
-      });
-    }
-
-    // ===== SETTINGS =====
-    
-    if (path === '/settings' && method === 'GET') {
-      const settings = await sql`SELECT * FROM settings`;
-      const cfg = { freeShippingThreshold: 75, taxRate: 0.0625, wallets: { btc: '', xmr: '', ltc: '' }};
-      
-      for (const s of settings) {
-        if (s.key === 'free_shipping_threshold') cfg.freeShippingThreshold = parseFloat(s.value);
-        if (s.key === 'tax_rate') cfg.taxRate = parseFloat(s.value);
-        if (s.key === 'wallet_btc') cfg.wallets.btc = s.value;
-        if (s.key === 'wallet_xmr') cfg.wallets.xmr = s.value;
-        if (s.key === 'wallet_ltc') cfg.wallets.ltc = s.value;
+      if (itemId && method === 'DELETE') {
+        const [item] = await sql`SELECT ci.*, p.name FROM cart_items ci JOIN products p ON ci.product_id = p.id WHERE ci.id = ${itemId}`;
+        await sql`DELETE FROM cart_items WHERE id = ${itemId} AND session_id = ${sid}`;
+        await log('cart_remove', 'cart', actorName, item?.name || `item#${itemId}`, `Item removed from cart`, clientIp);
       }
-      
-      return json({ settings: cfg });
-    }
-
-    // ===== CHECKOUT =====
-    
-    if (path === '/checkout/start' && method === 'POST') {
-      const session = await getSession(event);
-      if (!session?.customer_id) return json({ error: 'Must be logged in' }, 401);
-      
-      const cart = await sql`
-        SELECT ci.*, p.stock 
-        FROM cart_items ci 
-        JOIN products p ON ci.product_id = p.id 
-        WHERE ci.session_id = ${session.id}
-      `;
-      
-      if (!cart.length) return json({ error: 'Cart is empty' }, 400);
-      
-      // Lock inventory
-      const lockExpires = new Date(Date.now() + 300000); // 5 minutes
-      
-      for (const item of cart) {
-        await sql`
-          INSERT INTO inventory_locks (session_id, product_id, quantity, expires_at) 
-          VALUES (${session.id}, ${item.product_id}, ${item.quantity}, ${lockExpires})
-          ON CONFLICT DO NOTHING
-        `;
-      }
-      
-      return json({ success: true, lockExpires: lockExpires.getTime() });
-    }
-
-    if (path === '/checkout/complete' && method === 'POST') {
-      const session = await getSession(event);
-      if (!session?.customer_id) return json({ error: 'Must be logged in' }, 401);
-      
-      const { shippingInfo, paymentMethod } = JSON.parse(event.body || '{}');
-      if (!shippingInfo?.firstName || !shippingInfo?.email) return json({ error: 'Missing shipping info' }, 400);
-      
-      const cart = await sql`
-        SELECT ci.*, p.name, p.price 
-        FROM cart_items ci 
-        JOIN products p ON ci.product_id = p.id 
-        WHERE ci.session_id = ${session.id}
-      `;
-      
-      if (!cart.length) return json({ error: 'Cart is empty' }, 400);
-      
-      // Deduct inventory
-      for (const item of cart) {
-        await sql`UPDATE products SET stock = stock - ${item.quantity} WHERE id = ${item.product_id}`;
-      }
-      
-      // Calculate totals
-      const subtotal = cart.reduce((sum, i) => sum + parseFloat(i.price) * i.quantity, 0);
-      const shipping = subtotal >= 75 ? 0 : 7.99;
-      const tax = subtotal * 0.0625;
-      const total = subtotal + shipping + tax;
-      
-      // Create order with sequential order number
-      const orderId = 'o' + Date.now().toString(36);
-      const [orderCount] = await sql`SELECT COUNT(*)::int as count FROM orders`;
-      const orderNum = (orderCount?.count || 0) + 1001;
-      const orderNumber = 'AW-' + String(orderNum).padStart(6, '0');
-      const customerName = (shippingInfo.firstName || '') + ' ' + (shippingInfo.lastName || '');
-      const payMethod = paymentMethod || 'Demo';
-      
-      await sql`
-        INSERT INTO orders (id, order_number, customer_id, customer_name, customer_email, customer_phone, shipping_address, shipping_city, shipping_state, shipping_zip, subtotal, shipping, tax, total, payment_method, status)
-        VALUES (${orderId}, ${orderNumber}, ${session.customer_id}, ${customerName}, ${shippingInfo.email}, ${shippingInfo.phone || ''}, ${shippingInfo.address || ''}, ${shippingInfo.city || ''}, ${shippingInfo.state || ''}, ${shippingInfo.zip || ''}, ${subtotal}, ${shipping}, ${tax}, ${total}, ${payMethod}, 'pending')
-      `;
-      
-      // Log initial status (ignore if table doesn't exist yet)
-      try {
-        await sql`INSERT INTO order_status_history (order_id, status, notes) VALUES (${orderId}, 'pending', 'Order placed')`;
-      } catch (e) {
-        console.log('order_status_history table not found, skipping');
-      }
-      
-      // Add order items
-      for (const item of cart) {
-        await sql`
-          INSERT INTO order_items (order_id, product_id, product_name, product_price, quantity)
-          VALUES (${orderId}, ${item.product_id}, ${item.name}, ${item.price}, ${item.quantity})
-        `;
-      }
-      
-      // Clear cart and locks
-      await sql`DELETE FROM cart_items WHERE session_id = ${session.id}`;
-      await sql`DELETE FROM inventory_locks WHERE session_id = ${session.id}`;
-      
-      return json({ success: true, order: { orderNumber, orderId, total }});
-    }
-
-    if (path === '/checkout/cancel' && method === 'POST') {
-      const session = await getSession(event);
-      if (session) {
-        await sql`DELETE FROM inventory_locks WHERE session_id = ${session.id}`;
-      }
-      return json({ success: true });
+      if (itemId) return json(await getCart());
     }
 
     // ===== ORDERS =====
-    
-    if (path === '/orders' && method === 'GET') {
-      const session = await getSession(event);
-      if (!session) return json({ error: 'Not logged in' }, 401);
-      
-      const orders = session.is_admin
-        ? await sql`SELECT * FROM orders ORDER BY created_at DESC`
-        : await sql`SELECT * FROM orders WHERE customer_id = ${session.customer_id} ORDER BY created_at DESC`;
-      
-      const result = [];
-      for (const o of orders) {
-        const items = await sql`SELECT * FROM order_items WHERE order_id = ${o.id}`;
-        let history = [];
-        try {
-          history = await sql`SELECT * FROM order_status_history WHERE order_id = ${o.id} ORDER BY created_at ASC`;
-        } catch (e) {
-          // table doesn't exist yet
+    if (rawPath === '/orders') {
+      const user = await getUserByToken(token);
+
+      if (method === 'GET') {
+        if (!user) return json({ error: 'Not logged in' }, 401);
+        const orders = (user._isAdmin || params.all === 'true')
+          ? await sql`SELECT * FROM orders ORDER BY created_at DESC`
+          : await sql`SELECT * FROM orders WHERE customer_id = ${user.id} ORDER BY created_at DESC`;
+        const result = [];
+        for (const o of orders) {
+          let items = [];
+          try { items = await sql`SELECT * FROM order_items WHERE order_id = ${o.id}`; } catch {}
+          result.push({
+            ...o, subtotal: parseFloat(o.subtotal || 0), shipping: parseFloat(o.shipping || 0),
+            tax: parseFloat(o.tax || 0), total: parseFloat(o.total || 0),
+            items: items.map(i => ({ product_id: i.product_id, name: i.product_name, price: parseFloat(i.product_price || 0), quantity: i.quantity }))
+          });
         }
-        // Transform to camelCase for frontend
-        result.push({
-          id: o.id,
-          orderNumber: o.order_number,
-          customer: {
-            id: o.customer_id,
-            name: o.customer_name,
-            email: o.customer_email,
-            phone: o.customer_phone
-          },
-          shipping: {
-            address: o.shipping_address,
-            city: o.shipping_city,
-            state: o.shipping_state,
-            zip: o.shipping_zip
-          },
-          subtotal: parseFloat(o.subtotal || 0),
-          shippingCost: parseFloat(o.shipping || 0),
-          tax: parseFloat(o.tax || 0),
-          total: parseFloat(o.total || 0),
-          paymentMethod: o.payment_method,
-          paymentStatus: o.payment_method || 'pending',
-          status: o.status,
-          notes: o.notes || '',
-          createdAt: o.created_at,
-          items: items.map(i => ({
-            productId: i.product_id,
-            name: i.product_name,
-            price: parseFloat(i.product_price || 0),
-            quantity: i.quantity
-          })),
-          statusHistory: history
-        });
+        return json(result);
       }
-      
-      return json({ orders: result });
+
+      if (method === 'POST') {
+        if (!user) return json({ error: 'Not logged in' }, 401);
+        const { customer_name, customer_email, shipping_address } = JSON.parse(event.body || '{}');
+        const sid = token;
+        const cart = await sql`SELECT ci.*, p.name, p.price FROM cart_items ci JOIN products p ON ci.product_id = p.id WHERE ci.session_id = ${sid}`;
+        if (!cart.length) return json({ error: 'Cart is empty' }, 400);
+        const subtotal = cart.reduce((s, i) => s + parseFloat(i.price) * i.quantity, 0);
+        const shipping = subtotal >= 75 ? 0 : 5.99;
+        const total = subtotal + shipping;
+        const orderId = 'o' + Date.now().toString(36);
+        const [orderCount] = await sql`SELECT COUNT(*)::int as count FROM orders`;
+        const orderNumber = 'AW-' + String((orderCount?.count || 0) + 1001).padStart(6, '0');
+        await sql`INSERT INTO orders (id, order_number, customer_id, customer_name, customer_email, shipping_address, subtotal, shipping, total, status) VALUES (${orderId}, ${orderNumber}, ${user.id}, ${customer_name}, ${customer_email}, ${shipping_address}, ${subtotal}, ${shipping}, ${total}, 'pending')`;
+        const itemSummary = cart.map(i => `${i.quantity}x ${i.name}`).join(', ');
+        for (const item of cart) {
+          await sql`INSERT INTO order_items (order_id, product_id, product_name, product_price, quantity) VALUES (${orderId}, ${item.product_id}, ${item.name}, ${item.price}, ${item.quantity})`;
+          await sql`UPDATE products SET stock = stock - ${item.quantity} WHERE id = ${item.product_id}`;
+        }
+        await sql`DELETE FROM cart_items WHERE session_id = ${sid}`;
+        await log('order_placed', 'order', customer_name || user.name || 'customer', orderNumber, `Order ${orderNumber}: $${total.toFixed(2)} — ${itemSummary}`, clientIp);
+        await log('payment_pending', 'finance', customer_name || 'customer', orderNumber, `Subtotal: $${subtotal.toFixed(2)}, Shipping: $${shipping.toFixed(2)}, Total: $${total.toFixed(2)}`, clientIp);
+        for (const item of cart) {
+          await log('stock_deducted', 'inventory', 'system', item.name, `Stock reduced by ${item.quantity} (order ${orderNumber})`, clientIp);
+        }
+        return json({ success: true, order: { id: orderId, orderNumber, total } });
+      }
+
+      if (method === 'PUT') {
+        const admin = await requireAdmin(token);
+        if (!admin) return json({ error: 'Admin only' }, 403);
+        const orderId = params.id;
+        if (!orderId) return json({ error: 'Missing order id' }, 400);
+        const d = JSON.parse(event.body || '{}');
+        const [order] = await sql`SELECT * FROM orders WHERE id = ${orderId}`;
+        if (d.status !== undefined) {
+          const oldStatus = order?.status || 'unknown';
+          await sql`UPDATE orders SET status = ${d.status} WHERE id = ${orderId}`;
+          await log('order_status_changed', 'order', 'Admin', order?.order_number || orderId, `Status: ${oldStatus} → ${d.status}`, clientIp);
+          if (d.status === 'delivered') {
+            await log('payment_completed', 'finance', 'system', order?.order_number || orderId, `Payment confirmed — $${parseFloat(order?.total || 0).toFixed(2)}`, clientIp);
+          }
+          if (d.status === 'cancelled') {
+            await log('order_cancelled', 'finance', 'Admin', order?.order_number || orderId, `Order cancelled — $${parseFloat(order?.total || 0).toFixed(2)} reversed`, clientIp);
+          }
+        }
+        if (d.notes !== undefined) {
+          await sql`UPDATE orders SET notes = ${d.notes} WHERE id = ${orderId}`;
+          await log('order_note_added', 'order', 'Admin', order?.order_number || orderId, d.notes, clientIp);
+        }
+        return json({ success: true });
+      }
+
+      if (method === 'DELETE') {
+        const admin = await requireAdmin(token);
+        if (!admin) return json({ error: 'Admin only' }, 403);
+        const orderId = params.id;
+        if (!orderId) return json({ error: 'Missing order id' }, 400);
+        const [order] = await sql`SELECT * FROM orders WHERE id = ${orderId}`;
+        await sql`DELETE FROM order_items WHERE order_id = ${orderId}`;
+        await sql`DELETE FROM orders WHERE id = ${orderId}`;
+        await log('order_deleted', 'order', 'Admin', order?.order_number || orderId, `Order deleted — was $${parseFloat(order?.total || 0).toFixed(2)}, status: ${order?.status || 'unknown'}`, clientIp);
+        return json({ success: true });
+      }
     }
 
-    // ===== ADMIN =====
-    
-    if (path === '/admin/data' && method === 'GET') {
-      const session = await getSession(event);
-      if (!session?.is_admin) return json({ error: 'Admin only' }, 403);
-      
-      const products = await sql`SELECT * FROM products ORDER BY id`;
-      const orders = await sql`SELECT * FROM orders ORDER BY created_at DESC`;
-      const customers = await sql`SELECT * FROM customers ORDER BY created_at DESC`;
-      const settings = await sql`SELECT * FROM settings`;
-      const [lockCount] = await sql`SELECT COUNT(*)::int as c FROM inventory_locks WHERE expires_at > NOW()`;
-      
-      const cfg = { freeShippingThreshold: 75, taxRate: 0.0625, wallets: { btc: '', xmr: '', ltc: '' }};
-      for (const s of settings) {
-        if (s.key === 'free_shipping_threshold') cfg.freeShippingThreshold = parseFloat(s.value);
-        if (s.key === 'tax_rate') cfg.taxRate = parseFloat(s.value);
-        if (s.key === 'wallet_btc') cfg.wallets.btc = s.value;
-        if (s.key === 'wallet_xmr') cfg.wallets.xmr = s.value;
-        if (s.key === 'wallet_ltc') cfg.wallets.ltc = s.value;
+    // ===== CUSTOMERS =====
+    if (rawPath === '/customers') {
+      const admin = await requireAdmin(token);
+      if (!admin) return json({ error: 'Admin only' }, 403);
+
+      if (method === 'GET') {
+        const customers = await sql`SELECT id, username, email, name, phone, address, city, state, zip, notes, created_at FROM customers ORDER BY created_at DESC`;
+        return json(customers.map(c => ({
+          id: c.id, username: c.username || '', name: c.name || c.username || '', email: c.email,
+          phone: c.phone || '', address: c.address || '', city: c.city || '',
+          state: c.state || '', zip: c.zip || '', notes: c.notes || '',
+          role: 'customer', created_at: c.created_at
+        })));
       }
-      
-      // Transform orders
-      const ordersWithItems = [];
-      for (const o of orders) {
-        const items = await sql`SELECT * FROM order_items WHERE order_id = ${o.id}`;
-        let history = [];
-        try {
-          history = await sql`SELECT * FROM order_status_history WHERE order_id = ${o.id} ORDER BY created_at ASC`;
-        } catch (e) {}
-        
-        ordersWithItems.push({
-          id: o.id,
-          orderNumber: o.order_number,
-          customer: {
-            id: o.customer_id,
-            name: o.customer_name,
-            email: o.customer_email,
-            phone: o.customer_phone
-          },
-          shipping: {
-            address: o.shipping_address,
-            city: o.shipping_city,
-            state: o.shipping_state,
-            zip: o.shipping_zip
-          },
-          subtotal: parseFloat(o.subtotal || 0),
-          shippingCost: parseFloat(o.shipping || 0),
-          tax: parseFloat(o.tax || 0),
-          total: parseFloat(o.total || 0),
-          paymentMethod: o.payment_method,
-          status: o.status,
-          notes: o.notes || '',
-          createdAt: o.created_at,
-          items: items.map(i => ({
-            productId: i.product_id,
-            name: i.product_name,
-            price: parseFloat(i.product_price || 0),
-            quantity: i.quantity
-          })),
-          statusHistory: history
+
+      if (method === 'POST') {
+        const d = JSON.parse(event.body || '{}');
+        if (!d.email || !d.name) return json({ error: 'Name and email required' }, 400);
+        const [existing] = await sql`SELECT id FROM customers WHERE LOWER(email) = LOWER(${d.email})`;
+        if (existing) return json({ error: 'Email already exists' }, 400);
+        const id = 'c' + Date.now().toString(36);
+        await sql`INSERT INTO customers (id, username, email, password, name, phone, address, city, state, zip, notes, age_verified)
+          VALUES (${id}, ${d.username || d.name}, ${d.email}, ${d.password || 'changeme'}, ${d.name}, ${d.phone || ''}, ${d.address || ''}, ${d.city || ''}, ${d.state || ''}, ${d.zip || ''}, ${d.notes || ''}, true)`;
+        await log('customer_created', 'customer', 'Admin', d.name, `New customer: ${d.name} (${d.email})${d.phone ? ', phone: ' + d.phone : ''}${d.city ? ', city: ' + d.city : ''}`, clientIp);
+        return json({ success: true, id });
+      }
+
+      if (method === 'PUT') {
+        const customerId = params.id;
+        if (!customerId) return json({ error: 'Missing customer id' }, 400);
+        const d = JSON.parse(event.body || '{}');
+        const changes = [];
+        if (d.name !== undefined) { await sql`UPDATE customers SET name = ${d.name} WHERE id = ${customerId}`; changes.push(`name="${d.name}"`); }
+        if (d.username !== undefined) { await sql`UPDATE customers SET username = ${d.username} WHERE id = ${customerId}`; changes.push(`username="${d.username}"`); }
+        if (d.email !== undefined) { await sql`UPDATE customers SET email = ${d.email} WHERE id = ${customerId}`; changes.push(`email="${d.email}"`); }
+        if (d.phone !== undefined) { await sql`UPDATE customers SET phone = ${d.phone} WHERE id = ${customerId}`; changes.push(`phone="${d.phone}"`); }
+        if (d.address !== undefined) { await sql`UPDATE customers SET address = ${d.address} WHERE id = ${customerId}`; changes.push(`address="${d.address}"`); }
+        if (d.city !== undefined) { await sql`UPDATE customers SET city = ${d.city} WHERE id = ${customerId}`; changes.push(`city="${d.city}"`); }
+        if (d.state !== undefined) { await sql`UPDATE customers SET state = ${d.state} WHERE id = ${customerId}`; changes.push(`state="${d.state}"`); }
+        if (d.zip !== undefined) { await sql`UPDATE customers SET zip = ${d.zip} WHERE id = ${customerId}`; changes.push(`zip="${d.zip}"`); }
+        if (d.notes !== undefined) { await sql`UPDATE customers SET notes = ${d.notes} WHERE id = ${customerId}`; changes.push('notes updated'); }
+        if (d.password) { await sql`UPDATE customers SET password = ${d.password} WHERE id = ${customerId}`; changes.push('password changed'); }
+        await log('customer_updated', 'customer', 'Admin', customerId, changes.join(', '), clientIp);
+        return json({ success: true });
+      }
+
+      if (method === 'DELETE') {
+        const customerId = params.id;
+        if (!customerId) return json({ error: 'Missing customer id' }, 400);
+        const [c] = await sql`SELECT name, email FROM customers WHERE id = ${customerId}`;
+        await sql`DELETE FROM cart_items WHERE session_id IN (SELECT id FROM sessions WHERE customer_id = ${customerId})`;
+        await sql`DELETE FROM sessions WHERE customer_id = ${customerId}`;
+        try { await sql`DELETE FROM order_items WHERE order_id IN (SELECT id FROM orders WHERE customer_id = ${customerId})`; } catch {}
+        try { await sql`DELETE FROM orders WHERE customer_id = ${customerId}`; } catch {}
+        await sql`DELETE FROM customers WHERE id = ${customerId}`;
+        await log('customer_deleted', 'customer', 'Admin', c?.name || customerId, `Customer deleted: ${c?.name || ''} (${c?.email || ''}) — all orders and sessions removed`, clientIp);
+        return json({ success: true });
+      }
+    }
+
+    // ===== SETTINGS =====
+    if (rawPath === '/settings') {
+      if (method === 'GET') {
+        const settings = await sql`SELECT * FROM settings`;
+        const cfg = {};
+        for (const s of settings) cfg[s.key] = s.value;
+        return json({
+          store_name: cfg.store_name || 'AIRWAVES', store_tagline: cfg.store_tagline || 'Premium Hemp Products',
+          store_email: cfg.store_email || '', store_phone: cfg.store_phone || '',
+          shipping_flat_rate: cfg.shipping_flat_rate || '5.99', free_shipping_threshold: cfg.free_shipping_threshold || '75',
+          tax_rate: cfg.tax_rate || '0.0625', age_verification: cfg.age_verification || 'true',
+          wallet_btc: cfg.wallet_btc || '', wallet_xmr: cfg.wallet_xmr || '', wallet_ltc: cfg.wallet_ltc || ''
         });
       }
-      
-      // Transform customers
-      const customersTransformed = customers.map(c => ({
-        id: c.id,
-        username: c.username,
-        email: c.email,
-        phone: c.phone || '',
-        address: c.address || '',
-        city: c.city || '',
-        state: c.state || '',
-        zip: c.zip || '',
-        notes: c.notes || '',
-        createdAt: c.created_at
-      }));
-      
+
+      if (method === 'PUT') {
+        const admin = await requireAdmin(token);
+        if (!admin) return json({ error: 'Admin only' }, 403);
+        const d = JSON.parse(event.body || '{}');
+        const changes = [];
+        for (const [key, value] of Object.entries(d)) {
+          await sql`INSERT INTO settings (key, value) VALUES (${key}, ${String(value)}) ON CONFLICT (key) DO UPDATE SET value = ${String(value)}, updated_at = NOW()`;
+          changes.push(`${key}="${value}"`);
+        }
+        await log('settings_updated', 'settings', 'Admin', 'store settings', changes.join(', '), clientIp);
+        return json({ success: true });
+      }
+    }
+
+    // ===== STATS =====
+    if (rawPath === '/stats' && method === 'GET') {
+      const admin = await requireAdmin(token);
+      if (!admin) return json({ error: 'Admin only' }, 403);
+      const [productCount] = await sql`SELECT COUNT(*)::int as count FROM products`;
+      const [customerCount] = await sql`SELECT COUNT(*)::int as count FROM customers`;
+      const [orderCount] = await sql`SELECT COUNT(*)::int as count FROM orders`;
+      const [revenueResult] = await sql`SELECT COALESCE(SUM(total), 0) as total FROM orders`;
+      const [pendingOrders] = await sql`SELECT COUNT(*)::int as count FROM orders WHERE status = 'pending'`;
+      const lowStock = await sql`SELECT id, name, stock FROM products WHERE stock < 10 ORDER BY stock ASC LIMIT 10`;
+      const recentOrders = await sql`SELECT * FROM orders ORDER BY created_at DESC LIMIT 5`;
+      const recentCustomers = await sql`SELECT id, name, username, email, created_at FROM customers ORDER BY created_at DESC LIMIT 5`;
+      const statusCounts = await sql`SELECT status, COUNT(*)::int as count FROM orders GROUP BY status`;
       return json({
-        products: products.map(p => ({ ...p, price: parseFloat(p.price), createdAt: p.created_at })),
-        orders: ordersWithItems,
-        customers: customersTransformed,
-        settings: cfg,
-        stats: {
-          totalRevenue: orders.reduce((s, o) => s + parseFloat(o.total || 0), 0),
-          totalOrders: orders.length,
-          totalProducts: products.length,
-          totalCustomers: customers.length,
-          lowStockProducts: products.filter(p => p.stock < 20).length
-        },
-        activeLocks: lockCount?.c || 0
+        products: productCount?.count || 0, customers: customerCount?.count || 0,
+        orders: orderCount?.count || 0, revenue: parseFloat(revenueResult?.total || 0),
+        pendingOrders: pendingOrders?.count || 0,
+        lowStock: lowStock.map(p => ({ id: p.id, name: p.name, stock: p.stock })),
+        recentOrders, recentCustomers: recentCustomers.map(c => ({ id: c.id, name: c.name || c.username, email: c.email, created_at: c.created_at })),
+        statusCounts: statusCounts.reduce((o, s) => { o[s.status] = s.count; return o; }, {})
       });
     }
 
-    if (path === '/admin/settings' && method === 'PUT') {
-      const session = await getSession(event);
-      if (!session?.is_admin) return json({ error: 'Admin only' }, 403);
-      
-      const data = JSON.parse(event.body || '{}');
-      
-      if (data.freeShippingThreshold !== undefined) {
-        await sql`INSERT INTO settings (key, value) VALUES ('free_shipping_threshold', ${String(data.freeShippingThreshold)}) ON CONFLICT (key) DO UPDATE SET value = ${String(data.freeShippingThreshold)}`;
-      }
-      if (data.taxRate !== undefined) {
-        await sql`INSERT INTO settings (key, value) VALUES ('tax_rate', ${String(data.taxRate)}) ON CONFLICT (key) DO UPDATE SET value = ${String(data.taxRate)}`;
-      }
-      if (data.wallets?.btc !== undefined) {
-        await sql`INSERT INTO settings (key, value) VALUES ('wallet_btc', ${data.wallets.btc}) ON CONFLICT (key) DO UPDATE SET value = ${data.wallets.btc}`;
-      }
-      if (data.wallets?.xmr !== undefined) {
-        await sql`INSERT INTO settings (key, value) VALUES ('wallet_xmr', ${data.wallets.xmr}) ON CONFLICT (key) DO UPDATE SET value = ${data.wallets.xmr}`;
-      }
-      if (data.wallets?.ltc !== undefined) {
-        await sql`INSERT INTO settings (key, value) VALUES ('wallet_ltc', ${data.wallets.ltc}) ON CONFLICT (key) DO UPDATE SET value = ${data.wallets.ltc}`;
-      }
-      
-      // Return updated settings
-      const settings = await sql`SELECT * FROM settings`;
-      const cfg = { freeShippingThreshold: 75, taxRate: 0.0625, wallets: { btc: '', xmr: '', ltc: '' }};
-      for (const s of settings) {
-        if (s.key === 'free_shipping_threshold') cfg.freeShippingThreshold = parseFloat(s.value);
-        if (s.key === 'tax_rate') cfg.taxRate = parseFloat(s.value);
-        if (s.key === 'wallet_btc') cfg.wallets.btc = s.value;
-        if (s.key === 'wallet_xmr') cfg.wallets.xmr = s.value;
-        if (s.key === 'wallet_ltc') cfg.wallets.ltc = s.value;
-      }
-      return json({ settings: cfg });
-    }
+    // ===== ACTIVITY LOG =====
+    if (rawPath === '/logs') {
+      const admin = await requireAdmin(token);
+      if (!admin) return json({ error: 'Admin only' }, 403);
 
-    if (path === '/admin/products' && method === 'POST') {
-      const session = await getSession(event);
-      if (!session?.is_admin) return json({ error: 'Admin only' }, 403);
-      
-      const data = JSON.parse(event.body || '{}');
-      const [product] = await sql`
-        INSERT INTO products (name, category, price, thc, cbd, weight, description, stock, image)
-        VALUES (${data.name || 'New Product'}, ${data.category || 'flower'}, ${data.price || 0}, ${data.thc || ''}, ${data.cbd || ''}, ${data.weight || ''}, ${data.description || ''}, ${data.stock || 0}, ${data.image || ''})
-        RETURNING *
-      `;
-      return json({ success: true, product });
-    }
+      if (method === 'GET') {
+        const category = params.category || null;
+        const limit = Math.min(parseInt(params.limit) || 100, 500);
+        const offset = parseInt(params.offset) || 0;
 
-    // Admin product operations
-    const adminProductMatch = path.match(/^\/admin\/products\/(\d+)$/);
-    if (adminProductMatch) {
-      const session = await getSession(event);
-      if (!session?.is_admin) return json({ error: 'Admin only' }, 403);
-      
-      const productId = parseInt(adminProductMatch[1]);
-      
-      if (method === 'PUT') {
-        const data = JSON.parse(event.body || '{}');
-        await sql`UPDATE products SET
-          name = COALESCE(${data.name}, name),
-          category = COALESCE(${data.category}, category),
-          price = COALESCE(${data.price}, price),
-          thc = COALESCE(${data.thc}, thc),
-          cbd = COALESCE(${data.cbd}, cbd),
-          weight = COALESCE(${data.weight}, weight),
-          description = COALESCE(${data.description}, description),
-          stock = COALESCE(${data.stock}, stock),
-          image = COALESCE(${data.image}, image)
-          WHERE id = ${productId}`;
-        return json({ success: true });
-      }
-      
-      if (method === 'DELETE') {
-        await sql`DELETE FROM products WHERE id = ${productId}`;
-        return json({ success: true });
+        let logs;
+        if (category) {
+          logs = await sql`SELECT * FROM activity_log WHERE category = ${category} ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}`;
+        } else {
+          logs = await sql`SELECT * FROM activity_log ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}`;
+        }
+
+        const [total] = category
+          ? await sql`SELECT COUNT(*)::int as count FROM activity_log WHERE category = ${category}`
+          : await sql`SELECT COUNT(*)::int as count FROM activity_log`;
+
+        return json({ logs, total: total?.count || 0 });
       }
     }
 
-    // Admin order operations
-    const adminOrderMatch = path.match(/^\/admin\/orders\/(.+)$/);
-    if (adminOrderMatch) {
-      const session = await getSession(event);
-      if (!session?.is_admin) return json({ error: 'Admin only' }, 403);
-      
-      const orderId = adminOrderMatch[1];
-      
-      if (method === 'PUT') {
-        const { status, notes } = JSON.parse(event.body || '{}');
-        
-        // Update all provided fields
-        const data = JSON.parse(event.body || '{}');
-        
-        // Build dynamic update
-        const updates = [];
-        if (data.status !== undefined) {
-          await sql`UPDATE orders SET status = ${data.status} WHERE id = ${orderId}`;
-          try {
-            await sql`INSERT INTO order_status_history (order_id, status, notes) VALUES (${orderId}, ${data.status}, 'Status updated')`;
-          } catch (e) {}
-        }
-        if (data.order_number !== undefined) await sql`UPDATE orders SET order_number = ${data.order_number} WHERE id = ${orderId}`;
-        if (data.payment_method !== undefined) await sql`UPDATE orders SET payment_method = ${data.payment_method} WHERE id = ${orderId}`;
-        if (data.customer_name !== undefined) await sql`UPDATE orders SET customer_name = ${data.customer_name} WHERE id = ${orderId}`;
-        if (data.customer_email !== undefined) await sql`UPDATE orders SET customer_email = ${data.customer_email} WHERE id = ${orderId}`;
-        if (data.customer_phone !== undefined) await sql`UPDATE orders SET customer_phone = ${data.customer_phone} WHERE id = ${orderId}`;
-        if (data.shipping_address !== undefined) await sql`UPDATE orders SET shipping_address = ${data.shipping_address} WHERE id = ${orderId}`;
-        if (data.shipping_city !== undefined) await sql`UPDATE orders SET shipping_city = ${data.shipping_city} WHERE id = ${orderId}`;
-        if (data.shipping_state !== undefined) await sql`UPDATE orders SET shipping_state = ${data.shipping_state} WHERE id = ${orderId}`;
-        if (data.shipping_zip !== undefined) await sql`UPDATE orders SET shipping_zip = ${data.shipping_zip} WHERE id = ${orderId}`;
-        if (data.subtotal !== undefined) await sql`UPDATE orders SET subtotal = ${data.subtotal} WHERE id = ${orderId}`;
-        if (data.shipping !== undefined) await sql`UPDATE orders SET shipping = ${data.shipping} WHERE id = ${orderId}`;
-        if (data.tax !== undefined) await sql`UPDATE orders SET tax = ${data.tax} WHERE id = ${orderId}`;
-        if (data.total !== undefined) await sql`UPDATE orders SET total = ${data.total} WHERE id = ${orderId}`;
-        if (data.notes !== undefined) {
-          try {
-            await sql`UPDATE orders SET notes = ${data.notes} WHERE id = ${orderId}`;
-          } catch (e) {}
-        }
-        
-        return json({ success: true });
-      }
-      
-      if (method === 'DELETE') {
-        try {
-          await sql`DELETE FROM order_status_history WHERE order_id = ${orderId}`;
-        } catch (e) {
-          // table doesn't exist
-        }
-        await sql`DELETE FROM order_items WHERE order_id = ${orderId}`;
-        await sql`DELETE FROM orders WHERE id = ${orderId}`;
-        return json({ success: true });
-      }
+    // ===== DB INIT =====
+    if (rawPath === '/db-init') {
+      return json({ success: true, message: 'Use /api/db-init edge function' });
     }
 
-    // Admin customer operations
-    const adminCustomerMatch = path.match(/^\/admin\/customers\/(.+)$/);
-    if (adminCustomerMatch) {
-      const session = await getSession(event);
-      if (!session?.is_admin) return json({ error: 'Admin only' }, 403);
-      
-      const customerId = adminCustomerMatch[1];
-      
-      if (method === 'PUT') {
-        const data = JSON.parse(event.body || '{}');
-        
-        if (data.username !== undefined) await sql`UPDATE customers SET username = ${data.username} WHERE id = ${customerId}`;
-        if (data.email !== undefined) await sql`UPDATE customers SET email = ${data.email} WHERE id = ${customerId}`;
-        if (data.phone !== undefined) await sql`UPDATE customers SET phone = ${data.phone} WHERE id = ${customerId}`;
-        if (data.password) await sql`UPDATE customers SET password = ${data.password} WHERE id = ${customerId}`;
-        if (data.address !== undefined) await sql`UPDATE customers SET address = ${data.address} WHERE id = ${customerId}`;
-        if (data.city !== undefined) await sql`UPDATE customers SET city = ${data.city} WHERE id = ${customerId}`;
-        if (data.state !== undefined) await sql`UPDATE customers SET state = ${data.state} WHERE id = ${customerId}`;
-        if (data.zip !== undefined) await sql`UPDATE customers SET zip = ${data.zip} WHERE id = ${customerId}`;
-        if (data.notes !== undefined) {
-          try {
-            await sql`UPDATE customers SET notes = ${data.notes} WHERE id = ${customerId}`;
-          } catch (e) {}
-        }
-        
-        return json({ success: true });
-      }
-      
-      if (method === 'DELETE') {
-        // Delete customer's orders first
-        const orders = await sql`SELECT id FROM orders WHERE customer_id = ${customerId}`;
-        for (const o of orders) {
-          try { await sql`DELETE FROM order_status_history WHERE order_id = ${o.id}`; } catch (e) {}
-          await sql`DELETE FROM order_items WHERE order_id = ${o.id}`;
-        }
-        await sql`DELETE FROM orders WHERE customer_id = ${customerId}`;
-        await sql`DELETE FROM sessions WHERE customer_id = ${customerId}`;
-        await sql`DELETE FROM customers WHERE id = ${customerId}`;
-        return json({ success: true });
-      }
-    }
-
-    // Not found
-    return json({ error: 'Not found: ' + path }, 404);
+    return json({ error: 'Not found: ' + rawPath }, 404);
 
   } catch (error) {
     console.error('API Error:', error);

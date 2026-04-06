@@ -21,7 +21,7 @@ input,select,textarea{font-family:inherit;background:var(--surface2);color:var(-
 input:focus,select:focus,textarea:focus{border-color:var(--green)}
 .btn{padding:10px 22px;border-radius:var(--radius-sm);font-weight:700;font-size:.85rem;transition:all .2s;display:inline-flex;align-items:center;gap:6px}
 .btn-primary{background:var(--green);color:#000}
-.btn-primary:hover{background:var(--green-dim)}
+.btn-primary:hover{background:var(--green-dim);transform:translateY(-1px);box-shadow:0 4px 15px rgba(57,255,20,.3)}
 .btn-secondary{background:var(--surface3);color:var(--text)}
 .btn-secondary:hover{background:var(--purple);color:#fff}
 .btn-danger{background:var(--danger);color:#fff}
@@ -37,7 +37,6 @@ input:focus,select:focus,textarea:focus{border-color:var(--green)}
 .login-box .field{margin-bottom:14px;text-align:left}
 .login-box label{display:block;font-size:.78rem;font-weight:600;margin-bottom:4px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.05em}
 .login-box .error{color:var(--danger);font-size:.85rem;margin-top:12px;padding:10px;background:rgba(239,68,68,.1);border-radius:var(--radius-sm);display:none}
-.login-box .register-link{margin-top:16px;font-size:.88rem;color:var(--text-dim)}
 
 /* Layout */
 .admin-layout{display:none;min-height:100vh}
@@ -50,33 +49,72 @@ input:focus,select:focus,textarea:focus{border-color:var(--green)}
 .sidebar nav button:hover{color:var(--text);background:var(--surface2)}
 .sidebar nav button.active{color:var(--green);background:rgba(57,255,20,.08)}
 .sidebar .sidebar-footer{padding:12px 20px;border-top:1px solid var(--surface2);font-size:.8rem;color:var(--text-muted)}
-.sidebar .sidebar-footer a{color:var(--text-dim)}
+.sidebar .sidebar-footer a{color:var(--text-dim);display:block;margin-bottom:4px}
+.sidebar .sidebar-footer a:hover{color:var(--green)}
 .content{margin-left:220px;padding:24px 32px;min-height:100vh}
 
-/* Dashboard Cards */
-.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:32px}
-.stat-card{background:var(--surface);border:1px solid var(--surface2);border-radius:var(--radius);padding:20px}
-.stat-card .label{font-size:.78rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+/* Dashboard */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px}
+.stat-card{background:var(--surface);border:1px solid var(--surface2);border-radius:var(--radius);padding:20px;position:relative;overflow:hidden}
+.stat-card::after{content:'';position:absolute;top:0;right:0;width:60px;height:60px;border-radius:0 0 0 60px;opacity:.08}
+.stat-card .icon{font-size:1.5rem;margin-bottom:8px}
+.stat-card .label{font-size:.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
 .stat-card .value{font-family:'Archivo Black',sans-serif;font-size:1.8rem}
+.stat-card .sub-value{font-size:.78rem;color:var(--text-dim);margin-top:4px}
 .stat-card .value.green{color:var(--green)}
 .stat-card .value.purple{color:var(--purple)}
 .stat-card .value.blue{color:var(--blue)}
 .stat-card .value.warning{color:var(--warning)}
+.stat-card .value.danger{color:var(--danger)}
+
+.dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px}
+
+/* Activity Log */
+.log-entry{display:flex;gap:12px;padding:12px 16px;border-bottom:1px solid var(--surface2);font-size:.84rem;align-items:flex-start}
+.log-entry:last-child{border-bottom:none}
+.log-entry:hover{background:rgba(255,255,255,.02)}
+.log-icon{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.85rem;flex-shrink:0}
+.log-icon.auth{background:rgba(139,92,246,.15);color:var(--purple)}
+.log-icon.product{background:rgba(6,182,212,.15);color:var(--blue)}
+.log-icon.order{background:rgba(57,255,20,.15);color:var(--green)}
+.log-icon.finance{background:rgba(245,158,11,.15);color:var(--warning)}
+.log-icon.cart{background:rgba(139,92,246,.08);color:var(--purple)}
+.log-icon.customer{background:rgba(6,182,212,.08);color:var(--blue)}
+.log-icon.inventory{background:rgba(239,68,68,.12);color:var(--danger)}
+.log-icon.settings{background:rgba(152,152,168,.12);color:var(--text-dim)}
+.log-body{flex:1;min-width:0}
+.log-action{font-weight:600;color:var(--text)}
+.log-detail{color:var(--text-dim);font-size:.8rem;margin-top:2px;word-break:break-word}
+.log-meta{color:var(--text-muted);font-size:.72rem;margin-top:3px}
+.log-filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.log-filter{padding:5px 14px;border-radius:50px;background:var(--surface);color:var(--text-dim);font-size:.78rem;font-weight:500;border:1px solid transparent;cursor:pointer;transition:all .2s}
+.log-filter:hover,.log-filter.active{border-color:var(--green);color:var(--green);background:rgba(57,255,20,.06)}
+.log-load-more{width:100%;padding:12px;background:var(--surface2);color:var(--text-dim);font-size:.82rem;font-weight:600;border-radius:0;transition:all .2s}
+.log-load-more:hover{background:var(--surface3);color:var(--text)}
+@media(max-width:1100px){.dash-grid{grid-template-columns:1fr}}
 
 /* Tables */
 .table-wrap{background:var(--surface);border:1px solid var(--surface2);border-radius:var(--radius);overflow:hidden}
 .table-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--surface2);flex-wrap:wrap;gap:10px}
 .table-header h3{font-size:1rem;font-weight:700}
 table{width:100%;border-collapse:collapse}
-th{text-align:left;padding:12px 20px;font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);border-bottom:1px solid var(--surface2);font-weight:600}
-td{padding:12px 20px;border-bottom:1px solid var(--surface2);font-size:.88rem;vertical-align:middle}
+th{text-align:left;padding:12px 20px;font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);border-bottom:1px solid var(--surface2);font-weight:600}
+td{padding:12px 20px;border-bottom:1px solid var(--surface2);font-size:.85rem;vertical-align:middle}
 tr:last-child td{border-bottom:none}
 tr:hover td{background:rgba(255,255,255,.02)}
-.status-badge{font-size:.75rem;padding:3px 10px;border-radius:50px;font-weight:600}
+.status-badge{font-size:.72rem;padding:3px 10px;border-radius:50px;font-weight:600;display:inline-block}
 .status-pending{background:rgba(245,158,11,.12);color:var(--warning)}
 .status-shipped{background:rgba(6,182,212,.12);color:var(--blue)}
 .status-delivered{background:rgba(34,197,94,.12);color:var(--success)}
 .status-cancelled{background:rgba(239,68,68,.12);color:var(--danger)}
+.status-customer{background:rgba(139,92,246,.12);color:var(--purple)}
+
+/* Alert list */
+.alert-list{list-style:none;padding:0}
+.alert-list li{padding:10px 16px;border-bottom:1px solid var(--surface2);display:flex;align-items:center;justify-content:space-between;font-size:.85rem}
+.alert-list li:last-child{border-bottom:none}
+.alert-list .stock-warn{color:var(--warning);font-weight:600;font-size:.8rem}
+.alert-list .stock-crit{color:var(--danger);font-weight:600;font-size:.8rem}
 
 /* Forms */
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
@@ -109,6 +147,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
   .sidebar nav button{justify-content:center;padding:12px}
   .content{margin-left:60px;padding:16px}
   .form-grid{grid-template-columns:1fr}
+  .stat-grid{grid-template-columns:1fr 1fr}
 }
 
 .view{display:none}
@@ -124,38 +163,16 @@ tr:hover td{background:rgba(255,255,255,.02)}
     <img src="/images/logo.jpg" alt="AIRWAVES">
     <h1>Admin Dashboard</h1>
     <p class="sub">Sign in to manage your store</p>
-    <div id="loginForm">
-      <div class="field">
-        <label>Email</label>
-        <input type="email" id="loginEmail" placeholder="admin@airwaves.com">
-      </div>
-      <div class="field">
-        <label>Password</label>
-        <input type="password" id="loginPassword" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
-      </div>
-      <button class="btn btn-primary" onclick="doLogin()" style="width:100%;justify-content:center;margin-top:8px">Sign In</button>
-      <div class="error" id="loginError"></div>
+    <div class="field">
+      <label>Email</label>
+      <input type="email" id="loginEmail" placeholder="admin@airwaves.com">
     </div>
-    <div class="register-link">
-      <span id="toggleAuthText">Need an account? <a href="#" onclick="event.preventDefault();toggleAuthMode()">Register</a></span>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="loginPassword" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
     </div>
-    <!-- Register form (hidden by default) -->
-    <div id="registerForm" style="display:none">
-      <div class="field">
-        <label>Name</label>
-        <input type="text" id="regName" placeholder="Your name">
-      </div>
-      <div class="field">
-        <label>Email</label>
-        <input type="email" id="regEmail" placeholder="your@email.com">
-      </div>
-      <div class="field">
-        <label>Password</label>
-        <input type="password" id="regPassword" placeholder="••••••••" onkeydown="if(event.key==='Enter')doRegister()">
-      </div>
-      <button class="btn btn-primary" onclick="doRegister()" style="width:100%;justify-content:center;margin-top:8px">Create Account</button>
-      <div class="error" id="regError"></div>
-    </div>
+    <button class="btn btn-primary" onclick="doLogin()" style="width:100%;justify-content:center;margin-top:8px">Sign In</button>
+    <div class="error" id="loginError"></div>
   </div>
 </div>
 
@@ -167,66 +184,140 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <span>AIRWAVES</span>
     </div>
     <nav>
-      <button class="active" onclick="showSection('dashboard')" data-section="dashboard">📊 <span>Dashboard</span></button>
-      <button onclick="showSection('products')" data-section="products">📦 <span>Products</span></button>
-      <button onclick="showSection('orders')" data-section="orders">🛒 <span>Orders</span></button>
-      <button onclick="showSection('customers')" data-section="customers">👥 <span>Customers</span></button>
-      <button onclick="showSection('settings')" data-section="settings">⚙️ <span>Settings</span></button>
+      <button class="active" onclick="showSection('dashboard')" data-section="dashboard">&#x1f4ca; <span>Dashboard</span></button>
+      <button onclick="showSection('products')" data-section="products">&#x1f4e6; <span>Products</span></button>
+      <button onclick="showSection('orders')" data-section="orders">&#x1f6d2; <span>Orders</span></button>
+      <button onclick="showSection('customers')" data-section="customers">&#x1f465; <span>Customers</span></button>
+      <button onclick="showSection('logs')" data-section="logs">&#x1f4dc; <span>Activity Log</span></button>
+      <button onclick="showSection('settings')" data-section="settings">&#x2699;&#xfe0f; <span>Settings</span></button>
     </nav>
     <div class="sidebar-footer">
-      <a href="/">← Back to Store</a><br>
+      <a href="/">&#x2190; Back to Store</a>
       <a href="#" onclick="event.preventDefault();adminLogout()">Sign Out</a>
     </div>
   </div>
-  
+
   <div class="content">
-    <!-- DASHBOARD -->
+    <!-- ====== DASHBOARD ====== -->
     <div class="view active" id="dashboardView">
       <div class="section-header"><h2>Dashboard</h2><span style="color:var(--text-muted);font-size:.85rem" id="welcomeMsg"></span></div>
+
       <div class="stat-grid" id="statsGrid">
-        <div class="stat-card"><div class="label">Products</div><div class="value green" id="statProducts">-</div></div>
-        <div class="stat-card"><div class="label">Orders</div><div class="value purple" id="statOrders">-</div></div>
-        <div class="stat-card"><div class="label">Revenue</div><div class="value blue" id="statRevenue">-</div></div>
-        <div class="stat-card"><div class="label">Customers</div><div class="value warning" id="statCustomers">-</div></div>
+        <div class="stat-card">
+          <div class="icon">&#x1f4b0;</div>
+          <div class="label">Total Revenue</div>
+          <div class="value green" id="statRevenue">$0.00</div>
+          <div class="sub-value" id="statRevenueNote">All time</div>
+        </div>
+        <div class="stat-card">
+          <div class="icon">&#x1f6d2;</div>
+          <div class="label">Orders</div>
+          <div class="value purple" id="statOrders">0</div>
+          <div class="sub-value" id="statPending">0 pending</div>
+        </div>
+        <div class="stat-card">
+          <div class="icon">&#x1f4e6;</div>
+          <div class="label">Products</div>
+          <div class="value blue" id="statProducts">0</div>
+          <div class="sub-value" id="statLowStock">0 low stock</div>
+        </div>
+        <div class="stat-card">
+          <div class="icon">&#x1f465;</div>
+          <div class="label">Customers</div>
+          <div class="value warning" id="statCustomers">0</div>
+          <div class="sub-value" id="statNewCustomers">Registered accounts</div>
+        </div>
       </div>
+
+      <div class="dash-grid">
+        <!-- Recent Orders -->
+        <div class="table-wrap">
+          <div class="table-header"><h3>Recent Orders</h3></div>
+          <table><thead><tr><th>Order</th><th>Customer</th><th>Total</th><th>Status</th></tr></thead>
+          <tbody id="recentOrders"><tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:30px">Loading...</td></tr></tbody></table>
+        </div>
+
+        <!-- Low Stock & Recent Customers -->
+        <div>
+          <div class="table-wrap" style="margin-bottom:20px">
+            <div class="table-header"><h3>Low Stock Alerts</h3></div>
+            <ul class="alert-list" id="lowStockList">
+              <li style="color:var(--text-muted);padding:20px;text-align:center">Loading...</li>
+            </ul>
+          </div>
+          <div class="table-wrap">
+            <div class="table-header"><h3>New Customers</h3></div>
+            <table><thead><tr><th>Name</th><th>Email</th><th>Joined</th></tr></thead>
+            <tbody id="recentCustomers"><tr><td colspan="3" style="text-align:center;color:var(--text-muted);padding:20px">Loading...</td></tr></tbody></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Order Status Breakdown -->
       <div class="table-wrap">
-        <div class="table-header"><h3>Recent Orders</h3></div>
-        <table><thead><tr><th>Order</th><th>Customer</th><th>Total</th><th>Status</th><th>Date</th></tr></thead>
-        <tbody id="recentOrders"><tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:30px">Loading...</td></tr></tbody></table>
+        <div class="table-header"><h3>Order Status Breakdown</h3></div>
+        <div style="display:flex;gap:16px;padding:20px;flex-wrap:wrap" id="statusBreakdown">
+          <span style="color:var(--text-muted)">Loading...</span>
+        </div>
       </div>
     </div>
 
-    <!-- PRODUCTS -->
+    <!-- ====== PRODUCTS ====== -->
     <div class="view" id="productsView">
       <div class="section-header">
         <h2>Products</h2>
         <button class="btn btn-primary" onclick="openProductForm()">+ Add Product</button>
       </div>
       <div class="table-wrap">
-        <table><thead><tr><th>Product</th><th>Category</th><th>Price</th><th>Stock</th><th>Featured</th><th>Actions</th></tr></thead>
-        <tbody id="productsTable"><tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:30px">Loading...</td></tr></tbody></table>
+        <table><thead><tr><th></th><th>Product</th><th>Category</th><th>Price</th><th>Stock</th><th>Featured</th><th>Actions</th></tr></thead>
+        <tbody id="productsTable"><tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:30px">Loading...</td></tr></tbody></table>
       </div>
     </div>
 
-    <!-- ORDERS -->
+    <!-- ====== ORDERS ====== -->
     <div class="view" id="ordersView">
       <div class="section-header"><h2>Orders</h2></div>
       <div class="table-wrap">
-        <table><thead><tr><th>ID</th><th>Customer</th><th>Email</th><th>Total</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+        <table><thead><tr><th>Order #</th><th>Customer</th><th>Email</th><th>Total</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
         <tbody id="ordersTable"><tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:30px">Loading...</td></tr></tbody></table>
       </div>
     </div>
 
-    <!-- CUSTOMERS -->
+    <!-- ====== CUSTOMERS ====== -->
     <div class="view" id="customersView">
-      <div class="section-header"><h2>Customers</h2></div>
+      <div class="section-header">
+        <h2>Customers</h2>
+        <button class="btn btn-primary" onclick="openCustomerForm()">+ Add Customer</button>
+      </div>
       <div class="table-wrap">
-        <table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Joined</th></tr></thead>
-        <tbody id="customersTable"><tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:30px">Loading...</td></tr></tbody></table>
+        <table><thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Location</th><th>Joined</th><th>Actions</th></tr></thead>
+        <tbody id="customersTable"><tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:30px">Loading...</td></tr></tbody></table>
       </div>
     </div>
 
-    <!-- SETTINGS -->
+    <!-- ====== ACTIVITY LOG ====== -->
+    <div class="view" id="logsView">
+      <div class="section-header"><h2>Activity Log</h2></div>
+      <div class="log-filters" id="logFilters">
+        <button class="log-filter active" onclick="filterLogs(null)">All</button>
+        <button class="log-filter" onclick="filterLogs('auth')">Auth</button>
+        <button class="log-filter" onclick="filterLogs('order')">Orders</button>
+        <button class="log-filter" onclick="filterLogs('finance')">Finance</button>
+        <button class="log-filter" onclick="filterLogs('product')">Products</button>
+        <button class="log-filter" onclick="filterLogs('customer')">Customers</button>
+        <button class="log-filter" onclick="filterLogs('cart')">Cart</button>
+        <button class="log-filter" onclick="filterLogs('inventory')">Inventory</button>
+        <button class="log-filter" onclick="filterLogs('settings')">Settings</button>
+      </div>
+      <div class="table-wrap">
+        <div id="logEntries" style="max-height:70vh;overflow-y:auto">
+          <div style="text-align:center;color:var(--text-muted);padding:30px">Loading...</div>
+        </div>
+        <button class="log-load-more" id="logLoadMore" onclick="loadMoreLogs()" style="display:none">Load More</button>
+      </div>
+    </div>
+
+    <!-- ====== SETTINGS ====== -->
     <div class="view" id="settingsView">
       <div class="section-header"><h2>Store Settings</h2></div>
       <div class="panel">
@@ -264,7 +355,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <div class="field"><label>Price ($)</label><input type="number" step="0.01" id="prodPrice"></div>
       <div class="field full"><label>Description</label><textarea id="prodDesc" rows="3"></textarea></div>
       <div class="field"><label>Category</label>
-        <select id="prodCategory"><option>Flower</option><option>Pre-Rolls</option><option>Edibles</option><option>Tinctures</option><option>Topicals</option><option>Concentrates</option><option>Accessories</option><option>General</option></select>
+        <select id="prodCategory"><option>Flower</option><option>Pre-Rolls</option><option>Edibles</option><option>Tinctures</option><option>Topicals</option><option>Concentrates</option><option>Accessories</option></select>
       </div>
       <div class="field"><label>Strain Type</label>
         <select id="prodStrain"><option value="">N/A</option><option>Indica</option><option>Sativa</option><option>Hybrid</option></select>
@@ -280,7 +371,31 @@ tr:hover td{background:rgba(255,255,255,.02)}
     </div>
     <div style="display:flex;gap:10px;margin-top:16px">
       <button class="btn btn-primary" onclick="saveProduct()">Save Product</button>
-      <button class="btn btn-secondary" onclick="closeProductForm()">Cancel</button>
+      <button class="btn btn-secondary" onclick="closeModal('productModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- CUSTOMER FORM MODAL -->
+<div class="modal-overlay" id="customerModal">
+  <div class="modal">
+    <h3 id="customerFormTitle">Add Customer</h3>
+    <input type="hidden" id="custEditId">
+    <div class="form-grid">
+      <div class="field"><label>Name</label><input type="text" id="custName"></div>
+      <div class="field"><label>Username</label><input type="text" id="custUsername"></div>
+      <div class="field"><label>Email</label><input type="email" id="custEmail"></div>
+      <div class="field"><label>Phone</label><input type="text" id="custPhone"></div>
+      <div class="field"><label>Password</label><input type="password" id="custPassword" placeholder="Leave blank to keep current"></div>
+      <div class="field"><label>Address</label><input type="text" id="custAddress"></div>
+      <div class="field"><label>City</label><input type="text" id="custCity"></div>
+      <div class="field"><label>State</label><input type="text" id="custState"></div>
+      <div class="field"><label>Zip</label><input type="text" id="custZip"></div>
+      <div class="field full"><label>Notes</label><textarea id="custNotes" rows="2"></textarea></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:16px">
+      <button class="btn btn-primary" onclick="saveCustomer()">Save Customer</button>
+      <button class="btn btn-secondary" onclick="closeModal('customerModal')">Cancel</button>
     </div>
   </div>
 </div>
@@ -288,15 +403,15 @@ tr:hover td{background:rgba(255,255,255,.02)}
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
+<footer style="text-align:center;padding:20px;color:#58586a;font-size:.72rem">air-v.1.2.0</footer>
+
 <script>
 let adminToken = localStorage.getItem('aw_admin_token');
 let adminUser = null;
 let allProducts = [];
 let allOrders = [];
 let allCustomers = [];
-let currentAuthMode = 'login';
 
-// API helper
 async function api(path, options = {}) {
   const opts = { headers: { 'Content-Type': 'application/json' }, ...options };
   if (adminToken) opts.headers['Authorization'] = 'Bearer ' + adminToken;
@@ -323,20 +438,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 });
 
-function toggleAuthMode() {
-  if (currentAuthMode === 'login') {
-    currentAuthMode = 'register';
-    document.getElementById('loginForm').style.display = 'none';
-    document.getElementById('registerForm').style.display = 'block';
-    document.getElementById('toggleAuthText').innerHTML = 'Already have an account? <a href="#" onclick="event.preventDefault();toggleAuthMode()">Sign In</a>';
-  } else {
-    currentAuthMode = 'login';
-    document.getElementById('loginForm').style.display = 'block';
-    document.getElementById('registerForm').style.display = 'none';
-    document.getElementById('toggleAuthText').innerHTML = 'Need an account? <a href="#" onclick="event.preventDefault();toggleAuthMode()">Register</a>';
-  }
-}
-
 async function doLogin() {
   const email = document.getElementById('loginEmail').value.trim();
   const password = document.getElementById('loginPassword').value;
@@ -353,25 +454,6 @@ async function doLogin() {
   } catch (err) { errEl.textContent = err.message; errEl.style.display = 'block'; }
 }
 
-async function doRegister() {
-  const name = document.getElementById('regName').value.trim();
-  const email = document.getElementById('regEmail').value.trim();
-  const password = document.getElementById('regPassword').value;
-  const errEl = document.getElementById('regError');
-  errEl.style.display = 'none';
-  if (!name || !email || !password) { errEl.textContent = 'Please fill in all fields'; errEl.style.display = 'block'; return; }
-  try {
-    const data = await api('/api/auth?action=register', { method: 'POST', body: JSON.stringify({ email, password, name }) });
-    // New registrations are customers by default - inform user
-    errEl.textContent = 'Account created! However, admin access requires an admin role. Please contact the site owner.';
-    errEl.style.display = 'block';
-    errEl.style.background = 'rgba(57,255,20,.1)';
-    errEl.style.color = 'var(--green)';
-    // Switch back to login
-    setTimeout(() => toggleAuthMode(), 3000);
-  } catch (err) { errEl.textContent = err.message; errEl.style.display = 'block'; }
-}
-
 function showAdmin() {
   document.getElementById('loginPage').style.display = 'none';
   document.getElementById('adminLayout').style.display = 'block';
@@ -380,75 +462,100 @@ function showAdmin() {
 }
 
 function adminLogout() {
-  adminToken = null;
-  adminUser = null;
+  adminToken = null; adminUser = null;
   localStorage.removeItem('aw_admin_token');
   document.getElementById('adminLayout').style.display = 'none';
   document.getElementById('loginPage').style.display = 'flex';
 }
 
-// Sections
 function showSection(name) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.getElementById(name + 'View')?.classList.add('active');
   document.querySelectorAll('.sidebar nav button').forEach(b => b.classList.remove('active'));
   document.querySelector(`[data-section="${name}"]`)?.classList.add('active');
-  
   if (name === 'dashboard') loadDashboard();
   if (name === 'products') loadProducts();
   if (name === 'orders') loadOrders();
   if (name === 'customers') loadCustomers();
+  if (name === 'logs') loadLogs();
   if (name === 'settings') loadSettings();
 }
 
-// Dashboard
+// =============== DASHBOARD ===============
 async function loadDashboard() {
   try {
-    const [products, orders] = await Promise.all([
-      api('/api/products'),
-      api('/api/orders?all=true')
-    ]);
-    allProducts = products;
-    allOrders = orders;
-    
-    document.getElementById('statProducts').textContent = products.length;
-    document.getElementById('statOrders').textContent = orders.length;
-    const revenue = orders.reduce((s, o) => s + parseFloat(o.total || 0), 0);
-    document.getElementById('statRevenue').textContent = '$' + revenue.toFixed(2);
-    
-    // Count unique emails
-    const emails = new Set(orders.map(o => o.customer_email).filter(Boolean));
-    document.getElementById('statCustomers').textContent = emails.size;
-    
+    const stats = await api('/api/stats');
+    document.getElementById('statRevenue').textContent = '$' + stats.revenue.toFixed(2);
+    document.getElementById('statOrders').textContent = stats.orders;
+    document.getElementById('statPending').textContent = stats.pendingOrders + ' pending';
+    document.getElementById('statProducts').textContent = stats.products;
+    document.getElementById('statLowStock').textContent = stats.lowStock.length + ' low stock';
+    document.getElementById('statCustomers').textContent = stats.customers;
+
     // Recent orders
-    const recent = orders.slice(0, 5);
+    const recent = stats.recentOrders || [];
     document.getElementById('recentOrders').innerHTML = recent.length === 0
-      ? '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:30px">No orders yet</td></tr>'
+      ? '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:30px">No orders yet</td></tr>'
       : recent.map(o => `<tr>
-          <td>#${o.id}</td>
+          <td style="font-weight:600">${esc(o.order_number || o.id)}</td>
           <td>${esc(o.customer_name || 'N/A')}</td>
           <td style="color:var(--green);font-weight:600">$${parseFloat(o.total).toFixed(2)}</td>
           <td><span class="status-badge status-${o.status}">${o.status}</span></td>
-          <td style="color:var(--text-dim)">${new Date(o.created_at).toLocaleDateString()}</td>
         </tr>`).join('');
-  } catch (err) { console.error(err); }
+
+    // Low stock
+    const low = stats.lowStock || [];
+    document.getElementById('lowStockList').innerHTML = low.length === 0
+      ? '<li style="color:var(--text-muted);padding:20px;text-align:center">All products well stocked</li>'
+      : low.map(p => `<li>
+          <span>${esc(p.name)}</span>
+          <span class="${p.stock <= 3 ? 'stock-crit' : 'stock-warn'}">${p.stock} left</span>
+        </li>`).join('');
+
+    // Recent customers
+    const recentC = stats.recentCustomers || [];
+    document.getElementById('recentCustomers').innerHTML = recentC.length === 0
+      ? '<tr><td colspan="3" style="text-align:center;color:var(--text-muted);padding:20px">No customers yet</td></tr>'
+      : recentC.map(c => `<tr>
+          <td>${esc(c.name)}</td>
+          <td style="color:var(--text-dim)">${esc(c.email)}</td>
+          <td style="color:var(--text-dim);font-size:.8rem">${new Date(c.created_at).toLocaleDateString()}</td>
+        </tr>`).join('');
+
+    // Status breakdown
+    const sc = stats.statusCounts || {};
+    const statuses = [
+      { key: 'pending', label: 'Pending', cls: 'status-pending' },
+      { key: 'shipped', label: 'Shipped', cls: 'status-shipped' },
+      { key: 'delivered', label: 'Delivered', cls: 'status-delivered' },
+      { key: 'cancelled', label: 'Cancelled', cls: 'status-cancelled' }
+    ];
+    document.getElementById('statusBreakdown').innerHTML = statuses.map(s =>
+      `<div style="text-align:center;min-width:100px">
+        <div style="font-family:'Archivo Black',sans-serif;font-size:1.5rem;margin-bottom:4px">${sc[s.key] || 0}</div>
+        <span class="status-badge ${s.cls}">${s.label}</span>
+      </div>`
+    ).join('');
+
+  } catch (err) { console.error('Dashboard error:', err); }
 }
 
-// Products
+// =============== PRODUCTS ===============
 async function loadProducts() {
   try {
     allProducts = await api('/api/products');
     document.getElementById('productsTable').innerHTML = allProducts.length === 0
-      ? '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:30px">No products</td></tr>'
+      ? '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:30px">No products</td></tr>'
       : allProducts.map(p => `<tr>
-          <td><strong>${esc(p.name)}</strong></td>
-          <td>${esc(p.category || '')}</td>
+          <td><div style="width:40px;height:40px;border-radius:var(--radius-sm);overflow:hidden;background:var(--surface2)">${p.image_url ? `<img src="${p.image_url}" style="width:100%;height:100%;object-fit:cover">` : ''}</div></td>
+          <td><strong>${esc(p.name)}</strong><br><span style="font-size:.75rem;color:var(--text-muted)">${esc(p.weight)}</span></td>
+          <td><span class="status-badge status-customer">${esc(p.category)}</span></td>
           <td style="color:var(--green);font-weight:600">$${parseFloat(p.price).toFixed(2)}</td>
-          <td>${p.stock}</td>
-          <td>${p.featured ? '⭐' : '—'}</td>
+          <td><span style="color:${p.stock < 10 ? 'var(--danger)' : p.stock < 20 ? 'var(--warning)' : 'var(--text)'};font-weight:${p.stock < 20 ? '600' : '400'}">${p.stock}</span></td>
+          <td>${p.featured ? '<span style="color:var(--warning)">&#11088;</span>' : '<span style="color:var(--text-muted)">&#8212;</span>'}</td>
           <td>
             <button class="btn btn-secondary btn-sm" onclick="editProduct(${p.id})">Edit</button>
-            <button class="btn btn-danger btn-sm" onclick="deleteProduct(${p.id})">Delete</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteProduct(${p.id})">Del</button>
           </td>
         </tr>`).join('');
   } catch (err) { console.error(err); }
@@ -471,14 +578,7 @@ function openProductForm(product = null) {
   document.getElementById('productModal').classList.add('show');
 }
 
-function closeProductForm() {
-  document.getElementById('productModal').classList.remove('show');
-}
-
-function editProduct(id) {
-  const p = allProducts.find(x => x.id === id);
-  if (p) openProductForm(p);
-}
+function editProduct(id) { const p = allProducts.find(x => x.id === id); if (p) openProductForm(p); }
 
 async function saveProduct() {
   const id = document.getElementById('prodEditId').value;
@@ -497,12 +597,9 @@ async function saveProduct() {
   };
   if (!body.name || !body.price) { toast('Name and price are required', true); return; }
   try {
-    if (id) {
-      await api('/api/products?id=' + id, { method: 'PUT', body: JSON.stringify(body) });
-    } else {
-      await api('/api/products', { method: 'POST', body: JSON.stringify(body) });
-    }
-    closeProductForm();
+    if (id) await api('/api/products?id=' + id, { method: 'PUT', body: JSON.stringify(body) });
+    else await api('/api/products', { method: 'POST', body: JSON.stringify(body) });
+    closeModal('productModal');
     loadProducts();
     toast('Product saved!');
   } catch (err) { toast('Error: ' + err.message, true); }
@@ -510,68 +607,170 @@ async function saveProduct() {
 
 async function deleteProduct(id) {
   if (!confirm('Delete this product?')) return;
-  try {
-    await api('/api/products?id=' + id, { method: 'DELETE' });
-    loadProducts();
-    toast('Product deleted');
-  } catch (err) { toast('Error: ' + err.message, true); }
+  try { await api('/api/products?id=' + id, { method: 'DELETE' }); loadProducts(); toast('Product deleted'); }
+  catch (err) { toast('Error: ' + err.message, true); }
 }
 
-// Orders
+// =============== ORDERS ===============
 async function loadOrders() {
   try {
     allOrders = await api('/api/orders?all=true');
     document.getElementById('ordersTable').innerHTML = allOrders.length === 0
       ? '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:30px">No orders</td></tr>'
       : allOrders.map(o => `<tr>
-          <td>#${o.id}</td>
+          <td style="font-weight:600">${esc(o.order_number || o.id)}</td>
           <td>${esc(o.customer_name || 'N/A')}</td>
           <td style="color:var(--text-dim)">${esc(o.customer_email || '')}</td>
           <td style="color:var(--green);font-weight:600">$${parseFloat(o.total).toFixed(2)}</td>
           <td><span class="status-badge status-${o.status}">${o.status}</span></td>
           <td style="color:var(--text-dim)">${new Date(o.created_at).toLocaleDateString()}</td>
           <td>
-            <select onchange="updateOrderStatus(${o.id}, this.value)" style="padding:6px 10px;font-size:.8rem;width:auto">
-              <option ${o.status==='pending'?'selected':''}>pending</option>
-              <option ${o.status==='shipped'?'selected':''}>shipped</option>
-              <option ${o.status==='delivered'?'selected':''}>delivered</option>
-              <option ${o.status==='cancelled'?'selected':''}>cancelled</option>
+            <select onchange="updateOrderStatus('${o.id}', this.value)" style="padding:6px 10px;font-size:.78rem;width:auto;background:var(--surface2);border:1px solid var(--surface3);color:var(--text);border-radius:var(--radius-sm)">
+              <option ${o.status==='pending'?'selected':''} value="pending">Pending</option>
+              <option ${o.status==='shipped'?'selected':''} value="shipped">Shipped</option>
+              <option ${o.status==='delivered'?'selected':''} value="delivered">Delivered</option>
+              <option ${o.status==='cancelled'?'selected':''} value="cancelled">Cancelled</option>
             </select>
+            <button class="btn btn-danger btn-sm" style="margin-left:4px" onclick="deleteOrder('${o.id}')">Del</button>
           </td>
         </tr>`).join('');
   } catch (err) { console.error(err); }
 }
 
 async function updateOrderStatus(id, status) {
-  try {
-    await api('/api/orders?id=' + id, { method: 'PUT', body: JSON.stringify({ status }) });
-    toast('Order updated');
-  } catch (err) { toast('Error: ' + err.message, true); }
+  try { await api('/api/orders?id=' + id, { method: 'PUT', body: JSON.stringify({ status }) }); toast('Order updated'); }
+  catch (err) { toast('Error: ' + err.message, true); }
 }
 
-// Customers
+async function deleteOrder(id) {
+  if (!confirm('Delete this order? This cannot be undone.')) return;
+  try { await api('/api/orders?id=' + id, { method: 'DELETE' }); loadOrders(); toast('Order deleted'); }
+  catch (err) { toast('Error: ' + err.message, true); }
+}
+
+// =============== CUSTOMERS ===============
 async function loadCustomers() {
   try {
-    // We'll use a dedicated endpoint or just get from orders
     allCustomers = await api('/api/customers');
-    renderCustomers();
-  } catch {
-    document.getElementById('customersTable').innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:30px">Customer data unavailable</td></tr>';
+    document.getElementById('customersTable').innerHTML = allCustomers.length === 0
+      ? '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:30px">No customers</td></tr>'
+      : allCustomers.map(c => `<tr>
+          <td><strong>${esc(c.name || c.username)}</strong><br><span style="font-size:.75rem;color:var(--text-muted)">@${esc(c.username)}</span></td>
+          <td style="color:var(--text-dim)">${esc(c.email)}</td>
+          <td>${esc(c.phone || '—')}</td>
+          <td style="color:var(--text-dim);font-size:.82rem">${[c.city, c.state].filter(Boolean).join(', ') || '—'}</td>
+          <td style="color:var(--text-dim);font-size:.82rem">${new Date(c.created_at).toLocaleDateString()}</td>
+          <td>
+            <button class="btn btn-secondary btn-sm" onclick="editCustomer('${c.id}')">Edit</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteCustomer('${c.id}')">Del</button>
+          </td>
+        </tr>`).join('');
+  } catch (err) {
+    document.getElementById('customersTable').innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:30px">Error loading customers</td></tr>';
   }
 }
 
-function renderCustomers() {
-  document.getElementById('customersTable').innerHTML = allCustomers.length === 0
-    ? '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:30px">No customers</td></tr>'
-    : allCustomers.map(c => `<tr>
-        <td>${esc(c.name)}</td>
-        <td style="color:var(--text-dim)">${esc(c.email)}</td>
-        <td><span class="status-badge ${c.role==='admin'?'status-shipped':'status-pending'}">${c.role}</span></td>
-        <td style="color:var(--text-dim)">${new Date(c.created_at).toLocaleDateString()}</td>
-      </tr>`).join('');
+function openCustomerForm(customer = null) {
+  document.getElementById('customerFormTitle').textContent = customer ? 'Edit Customer' : 'Add Customer';
+  document.getElementById('custEditId').value = customer?.id || '';
+  document.getElementById('custName').value = customer?.name || '';
+  document.getElementById('custUsername').value = customer?.username || '';
+  document.getElementById('custEmail').value = customer?.email || '';
+  document.getElementById('custPhone').value = customer?.phone || '';
+  document.getElementById('custPassword').value = '';
+  document.getElementById('custAddress').value = customer?.address || '';
+  document.getElementById('custCity').value = customer?.city || '';
+  document.getElementById('custState').value = customer?.state || '';
+  document.getElementById('custZip').value = customer?.zip || '';
+  document.getElementById('custNotes').value = customer?.notes || '';
+  document.getElementById('customerModal').classList.add('show');
 }
 
-// Settings
+function editCustomer(id) { const c = allCustomers.find(x => x.id === id); if (c) openCustomerForm(c); }
+
+async function saveCustomer() {
+  const id = document.getElementById('custEditId').value;
+  const body = {
+    name: document.getElementById('custName').value.trim(),
+    username: document.getElementById('custUsername').value.trim(),
+    email: document.getElementById('custEmail').value.trim(),
+    phone: document.getElementById('custPhone').value.trim(),
+    address: document.getElementById('custAddress').value.trim(),
+    city: document.getElementById('custCity').value.trim(),
+    state: document.getElementById('custState').value.trim(),
+    zip: document.getElementById('custZip').value.trim(),
+    notes: document.getElementById('custNotes').value.trim()
+  };
+  const pw = document.getElementById('custPassword').value;
+  if (pw) body.password = pw;
+  if (!body.name || !body.email) { toast('Name and email are required', true); return; }
+  try {
+    if (id) await api('/api/customers?id=' + id, { method: 'PUT', body: JSON.stringify(body) });
+    else await api('/api/customers', { method: 'POST', body: JSON.stringify(body) });
+    closeModal('customerModal');
+    loadCustomers();
+    toast('Customer saved!');
+  } catch (err) { toast('Error: ' + err.message, true); }
+}
+
+async function deleteCustomer(id) {
+  if (!confirm('Delete this customer and all their orders? This cannot be undone.')) return;
+  try { await api('/api/customers?id=' + id, { method: 'DELETE' }); loadCustomers(); toast('Customer deleted'); }
+  catch (err) { toast('Error: ' + err.message, true); }
+}
+
+// =============== ACTIVITY LOG ===============
+let logCategory = null;
+let logOffset = 0;
+const LOG_LIMIT = 50;
+const LOG_ICONS = {
+  auth: '&#x1f511;', order: '&#x1f6d2;', finance: '&#x1f4b0;', product: '&#x1f4e6;',
+  customer: '&#x1f465;', cart: '&#x1f6d2;', inventory: '&#x1f4e6;', settings: '&#x2699;&#xfe0f;'
+};
+
+async function loadLogs(append = false) {
+  try {
+    let url = `/api/logs?limit=${LOG_LIMIT}&offset=${logOffset}`;
+    if (logCategory) url += `&category=${logCategory}`;
+    const data = await api(url);
+    const el = document.getElementById('logEntries');
+    if (!append) el.innerHTML = '';
+    if (data.logs.length === 0 && !append) {
+      el.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:40px">No activity recorded yet</div>';
+      document.getElementById('logLoadMore').style.display = 'none';
+      return;
+    }
+    el.innerHTML += data.logs.map(l => {
+      const icon = LOG_ICONS[l.category] || '&#x1f4cb;';
+      const time = new Date(l.created_at);
+      const timeStr = time.toLocaleDateString() + ' ' + time.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+      return `<div class="log-entry">
+        <div class="log-icon ${l.category}">${icon}</div>
+        <div class="log-body">
+          <div class="log-action">${esc(l.action.replace(/_/g, ' '))} <span style="color:var(--text-dim);font-weight:400">— ${esc(l.target)}</span></div>
+          <div class="log-detail">${esc(l.details)}</div>
+          <div class="log-meta">${esc(l.actor)}${l.ip ? ' &middot; ' + esc(l.ip) : ''} &middot; ${timeStr}</div>
+        </div>
+      </div>`;
+    }).join('');
+    document.getElementById('logLoadMore').style.display = (logOffset + LOG_LIMIT < data.total) ? 'block' : 'none';
+  } catch (err) { console.error('Log load error:', err); }
+}
+
+function filterLogs(category) {
+  logCategory = category;
+  logOffset = 0;
+  document.querySelectorAll('.log-filter').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  loadLogs();
+}
+
+function loadMoreLogs() {
+  logOffset += LOG_LIMIT;
+  loadLogs(true);
+}
+
+// =============== SETTINGS ===============
 async function loadSettings() {
   try {
     const s = await api('/api/settings');
@@ -602,7 +801,8 @@ async function saveSettings() {
   } catch (err) { toast('Error: ' + err.message, true); }
 }
 
-// Utils
+// =============== UTILS ===============
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
 function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
 function toast(msg, isError = false) {
   const el = document.getElementById('toast');
