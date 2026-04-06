@@ -20,12 +20,15 @@ export default async (req, context) => {
         name VARCHAR(255) NOT NULL,
         description TEXT,
         price DECIMAL(10,2) NOT NULL,
-        image TEXT DEFAULT '',
+        image_url TEXT DEFAULT '',
         category VARCHAR(100),
-        thc VARCHAR(50) DEFAULT '',
-        cbd VARCHAR(50) DEFAULT '',
+        strain_type VARCHAR(100) DEFAULT '',
+        thc_content VARCHAR(50) DEFAULT '',
+        cbd_content VARCHAR(50) DEFAULT '',
         weight VARCHAR(50) DEFAULT '',
         stock INTEGER DEFAULT 0,
+        featured BOOLEAN DEFAULT false,
+        active BOOLEAN DEFAULT true,
         created_at TIMESTAMP DEFAULT NOW()
       )
     `;
@@ -182,15 +185,15 @@ export default async (req, context) => {
     // Insert sample products if none exist
     const existingProducts = await sql`SELECT COUNT(*)::int as count FROM products`;
     if (existingProducts[0].count === 0) {
-      await sql`INSERT INTO products (name, description, price, category, thc, cbd, weight, stock, image) VALUES
-        ('OG Kush Hemp Flower', 'Classic earthy and pine aroma with dense, trichome-rich buds. Lab-tested premium hemp flower.', 34.99, 'Flower', '<0.3%', '18.5%', '3.5g', 50, ''),
-        ('Blue Dream Pre-Rolls', 'Smooth berry flavor in perfectly rolled 1g pre-rolls. Pack of 5 pre-rolls per tin.', 29.99, 'Pre-Rolls', '<0.3%', '16.2%', '5g', 75, ''),
-        ('Full Spectrum CBD Oil 1000mg', 'Organic MCT carrier oil with full-spectrum hemp extract. Natural flavor with dropper.', 49.99, 'Tinctures', '<0.3%', '33mg/ml', '30ml', 100, ''),
-        ('Delta-8 Gummies - Mixed Berry', 'Delicious mixed berry gummies with 25mg Delta-8 per piece. 20 count jar.', 39.99, 'Edibles', '<0.3%', '10mg/pc', '20ct', 60, ''),
-        ('CBG Isolate Powder', 'Pure CBG isolate, 99%+ purity. Lab-tested for potency and contaminants.', 44.99, 'Concentrates', '0%', '0%', '1g', 40, ''),
-        ('Hemp Healing Balm', 'Topical balm infused with 500mg broad-spectrum CBD, lavender, and eucalyptus.', 24.99, 'Topicals', '0%', '500mg', '2oz', 80, ''),
-        ('Sour Space Candy Flower', 'Bright citrus and sour apple notes. Dense sticky buds with vibrant trichomes.', 32.99, 'Flower', '<0.3%', '19.1%', '3.5g', 45, ''),
-        ('CBN Sleep Tincture', 'Specialized nighttime formula with CBN and CBD for restful sleep. Natural mint flavor.', 54.99, 'Tinctures', '0%', '20mg/ml', '30ml', 35, '')
+      await sql`INSERT INTO products (name, description, price, category, strain_type, thc_content, cbd_content, weight, stock, image_url, featured) VALUES
+        ('OG Kush Hemp Flower', 'Classic earthy and pine aroma with dense, trichome-rich buds. Lab-tested premium hemp flower.', 34.99, 'Flower', 'Hybrid', '<0.3%', '18.5%', '3.5g', 50, '', true),
+        ('Blue Dream Pre-Rolls', 'Smooth berry flavor in perfectly rolled 1g pre-rolls. Pack of 5 pre-rolls per tin.', 29.99, 'Pre-Rolls', 'Sativa', '<0.3%', '16.2%', '5g', 75, '', true),
+        ('Full Spectrum CBD Oil 1000mg', 'Organic MCT carrier oil with full-spectrum hemp extract. Natural flavor with dropper.', 49.99, 'Tinctures', 'N/A', '<0.3%', '33mg/ml', '30ml', 100, '', true),
+        ('Delta-8 Gummies - Mixed Berry', 'Delicious mixed berry gummies with 25mg Delta-8 per piece. 20 count jar.', 39.99, 'Edibles', 'N/A', '<0.3%', '10mg/pc', '20ct', 60, '', false),
+        ('CBG Isolate Powder', 'Pure CBG isolate, 99%+ purity. Lab-tested for potency and contaminants.', 44.99, 'Concentrates', 'N/A', '0%', '0%', '1g', 40, '', false),
+        ('Hemp Healing Balm', 'Topical balm infused with 500mg broad-spectrum CBD, lavender, and eucalyptus.', 24.99, 'Topicals', 'N/A', '0%', '500mg', '2oz', 80, '', true),
+        ('Sour Space Candy Flower', 'Bright citrus and sour apple notes. Dense sticky buds with vibrant trichomes.', 32.99, 'Flower', 'Sativa', '<0.3%', '19.1%', '3.5g', 45, '', false),
+        ('CBN Sleep Tincture', 'Specialized nighttime formula with CBN and CBD for restful sleep. Natural mint flavor.', 54.99, 'Tinctures', 'N/A', '0%', '20mg/ml', '30ml', 35, '', false)
       `;
     }
 

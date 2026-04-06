@@ -958,6 +958,7 @@ async function submitAuth() {
 }
 
 function logout() {
+  try { api('/api/auth?action=logout', { method: 'POST' }); } catch {}
   authToken = null;
   currentUser = null;
   localStorage.removeItem('aw_token');
@@ -1000,7 +1001,7 @@ async function loadOrders() {
     el.innerHTML = orders.map(o => `
       <div style="background:var(--surface);border:1px solid var(--surface2);border-radius:var(--radius);padding:20px;margin-bottom:12px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-          <strong>Order #${o.id}</strong>
+          <strong>Order ${o.order_number || o.id}</strong>
           <span style="font-size:.8rem;padding:4px 10px;border-radius:50px;background:${o.status==='pending'?'rgba(245,158,11,.15);color:var(--warning)':o.status==='shipped'?'rgba(6,182,212,.15);color:var(--blue)':'rgba(34,197,94,.15);color:var(--success)'}">${o.status}</span>
         </div>
         <div style="display:flex;justify-content:space-between;font-size:.88rem;color:var(--text-dim)">

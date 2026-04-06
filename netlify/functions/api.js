@@ -11,6 +11,22 @@ const json = (data, status = 200) => ({
 
 function genToken() { return crypto.randomBytes(32).toString('hex'); }
 
+function hashPassword(password) {
+  const salt = crypto.randomBytes(16).toString('hex');
+  const hash = crypto.scryptSync(password, salt, 64).toString('hex');
+  return salt + ':' + hash;
+}
+
+function verifyPassword(password, stored) {
+  if (!stored || !stored.includes(':')) return password === stored; // fallback for legacy plaintext
+  const [salt, hash] = stored.split(':');
+  const test = crypto.scryptSync(password, salt, 64).toString('hex');
+  return test === hash;
+}
+
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@airwaves.com';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'airwaves1';
+
 async function getUserByToken(token) {
   if (!token) return null;
   try {
@@ -77,7 +93,7 @@ export async function handler(event) {
         if (!email || !password) return json({ error: 'Email and password required' }, 400);
 
         // Admin login
-        if ((email === 'admin' || email === 'admin@airwaves.com') && password === 'airwaves1') {
+        if ((email === 'admin' || email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) && password === ADMIN_PASSWORD) {
           const tok = genToken();
           const expires = new Date(Date.now() + 86400000);
           await sql`INSERT INTO sessions (id, customer_id, is_admin, expires_at) VALUES (${tok}, NULL, true, ${expires})`;
@@ -85,8 +101,8 @@ export async function handler(event) {
           return json({ token: tok, user: { id: 'admin', name: 'Admin', email: 'admin@airwaves.com', role: 'admin' } });
         }
 
-        const [user] = await sql`SELECT * FROM customers WHERE (LOWER(email) = LOWER(${email}) OR LOWER(username) = LOWER(${email})) AND password = ${password}`;
-        if (!user) {
+        const [user] = await sql`SELECT * FROM customers WHERE LOWER(email) = LOWER(${email}) OR LOWER(username) = LOWER(${email})`;
+        if (!user || !verifyPassword(password, user.password)) {
           await log('login_failed', 'auth', email, email, 'Invalid credentials', clientIp);
           return json({ error: 'Invalid credentials' }, 401);
         }
@@ -111,7 +127,8 @@ export async function handler(event) {
         }
 
         const id = 'c' + Date.now().toString(36);
-        await sql`INSERT INTO customers (id, username, email, password, name, age_verified) VALUES (${id}, ${name}, ${email}, ${password}, ${name}, true)`;
+        const hashedPw = hashPassword(password);
+        await sql`INSERT INTO customers (id, username, email, password, name, age_verified) VALUES (${id}, ${name}, ${email}, ${hashedPw}, ${name}, true)`;
 
         const tok = genToken();
         const expires = new Date(Date.now() + 86400000);
@@ -165,6 +182,8 @@ export async function handler(event) {
       }
 
       if (method === 'PUT') {
+        const admin = await requireAdmin(token);
+        if (!admin) return json({ error: 'Admin only' }, 403);
         const pid = parseInt(params.id);
         if (!pid) return json({ error: 'Missing product id' }, 400);
         const d = JSON.parse(event.body || '{}');
@@ -278,17 +297,28 @@ export async function handler(event) {
         if (!user) return json({ error: 'Not logged in' }, 401);
         const { customer_name, customer_email, shipping_address, payment_method } = JSON.parse(event.body || '{}');
         const sid = token;
-        const cart = await sql`SELECT ci.*, p.name, p.price FROM cart_items ci JOIN products p ON ci.product_id = p.id WHERE ci.session_id = ${sid}`;
+        const cart = await sql`SELECT ci.*, p.name, p.price, p.stock FROM cart_items ci JOIN products p ON ci.product_id = p.id WHERE ci.session_id = ${sid}`;
         if (!cart.length) return json({ error: 'Cart is empty' }, 400);
+        // Validate stock
+        for (const item of cart) {
+          if (item.quantity > item.stock) return json({ error: `Not enough stock for ${item.name} (${item.stock} available)` }, 400);
+        }
+        // Load shipping/tax settings
+        const storeSettings = await sql`SELECT * FROM settings`;
+        const cfg = {};
+        for (const s of storeSettings) cfg[s.key] = s.value;
+        const freeThreshold = parseFloat(cfg.free_shipping_threshold) || 75;
+        const shippingRate = parseFloat(cfg.shipping_flat_rate) || 5.99;
+        const taxRate = parseFloat(cfg.tax_rate) || 0;
         const subtotal = cart.reduce((s, i) => s + parseFloat(i.price) * i.quantity, 0);
-        const shipping = subtotal >= 75 ? 0 : 5.99;
-        const total = subtotal + shipping;
+        const shipping = subtotal >= freeThreshold ? 0 : shippingRate;
+        const tax = subtotal * taxRate;
+        const total = subtotal + shipping + tax;
         const orderId = 'o' + Date.now().toString(36);
-        const [maxOrder] = await sql`SELECT order_number FROM orders WHERE order_number LIKE 'OR-%' ORDER BY order_number DESC LIMIT 1`;
-        const lastNum = maxOrder ? parseInt(maxOrder.order_number.replace('OR-', '')) : 0;
-        const orderNumber = 'OR-' + String(lastNum + 1).padStart(4, '0');
+        const [nextNum] = await sql`SELECT COALESCE(MAX(CAST(REPLACE(order_number, 'OR-', '') AS INT)), 0) + 1 AS num FROM orders WHERE order_number LIKE 'OR-%'`;
+        const orderNumber = 'OR-' + String(nextNum?.num || 1).padStart(4, '0');
         const payMethod = payment_method || 'cash';
-        await sql`INSERT INTO orders (id, order_number, customer_id, customer_name, customer_email, shipping_address, subtotal, shipping, total, payment_method, status) VALUES (${orderId}, ${orderNumber}, ${user.id}, ${customer_name}, ${customer_email}, ${shipping_address}, ${subtotal}, ${shipping}, ${total}, ${payMethod}, 'pending')`;
+        await sql`INSERT INTO orders (id, order_number, customer_id, customer_name, customer_email, shipping_address, subtotal, shipping, tax, total, payment_method, status) VALUES (${orderId}, ${orderNumber}, ${user.id}, ${customer_name}, ${customer_email}, ${shipping_address}, ${subtotal}, ${shipping}, ${tax}, ${total}, ${payMethod}, 'pending')`;
         const itemSummary = cart.map(i => `${i.quantity}x ${i.name}`).join(', ');
         for (const item of cart) {
           await sql`INSERT INTO order_items (order_id, product_id, product_name, product_price, quantity) VALUES (${orderId}, ${item.product_id}, ${item.name}, ${item.price}, ${item.quantity})`;
@@ -296,7 +326,7 @@ export async function handler(event) {
         }
         await sql`DELETE FROM cart_items WHERE session_id = ${sid}`;
         await log('order_placed', 'order', customer_name || user.name || 'customer', orderNumber, `Order ${orderNumber}: $${total.toFixed(2)} — ${itemSummary}`, clientIp);
-        await log('payment_pending', 'finance', customer_name || 'customer', orderNumber, `Subtotal: $${subtotal.toFixed(2)}, Shipping: $${shipping.toFixed(2)}, Total: $${total.toFixed(2)}`, clientIp);
+        await log('payment_pending', 'finance', customer_name || 'customer', orderNumber, `Subtotal: $${subtotal.toFixed(2)}, Shipping: $${shipping.toFixed(2)}, Tax: $${tax.toFixed(2)}, Total: $${total.toFixed(2)}`, clientIp);
         for (const item of cart) {
           await log('stock_deducted', 'inventory', 'system', item.name, `Stock reduced by ${item.quantity} (order ${orderNumber})`, clientIp);
         }
@@ -362,8 +392,9 @@ export async function handler(event) {
         const [existing] = await sql`SELECT id FROM customers WHERE LOWER(email) = LOWER(${d.email})`;
         if (existing) return json({ error: 'Email already exists' }, 400);
         const id = 'c' + Date.now().toString(36);
+        const custPw = hashPassword(d.password || 'changeme');
         await sql`INSERT INTO customers (id, username, email, password, name, phone, address, city, state, zip, notes, age_verified)
-          VALUES (${id}, ${d.username || d.name}, ${d.email}, ${d.password || 'changeme'}, ${d.name}, ${d.phone || ''}, ${d.address || ''}, ${d.city || ''}, ${d.state || ''}, ${d.zip || ''}, ${d.notes || ''}, true)`;
+          VALUES (${id}, ${d.username || d.name}, ${d.email}, ${custPw}, ${d.name}, ${d.phone || ''}, ${d.address || ''}, ${d.city || ''}, ${d.state || ''}, ${d.zip || ''}, ${d.notes || ''}, true)`;
         await log('customer_created', 'customer', 'Admin', d.name, `New customer: ${d.name} (${d.email})${d.phone ? ', phone: ' + d.phone : ''}${d.city ? ', city: ' + d.city : ''}`, clientIp);
         return json({ success: true, id });
       }
@@ -382,7 +413,7 @@ export async function handler(event) {
         if (d.state !== undefined) { await sql`UPDATE customers SET state = ${d.state} WHERE id = ${customerId}`; changes.push(`state="${d.state}"`); }
         if (d.zip !== undefined) { await sql`UPDATE customers SET zip = ${d.zip} WHERE id = ${customerId}`; changes.push(`zip="${d.zip}"`); }
         if (d.notes !== undefined) { await sql`UPDATE customers SET notes = ${d.notes} WHERE id = ${customerId}`; changes.push('notes updated'); }
-        if (d.password) { await sql`UPDATE customers SET password = ${d.password} WHERE id = ${customerId}`; changes.push('password changed'); }
+        if (d.password) { const hp = hashPassword(d.password); await sql`UPDATE customers SET password = ${hp} WHERE id = ${customerId}`; changes.push('password changed'); }
         await log('customer_updated', 'customer', 'Admin', customerId, changes.join(', '), clientIp);
         return json({ success: true });
       }

@@ -470,6 +470,7 @@ function showAdmin() {
 }
 
 function adminLogout() {
+  try { api('/api/auth?action=logout', { method: 'POST' }); } catch {}
   adminToken = null; adminUser = null;
   localStorage.removeItem('aw_admin_token');
   document.getElementById('adminLayout').style.display = 'none';
