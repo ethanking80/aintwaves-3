@@ -272,7 +272,7 @@ footer .footer-links a:hover{color:var(--green)}
       <p>Lab-tested, farm-fresh hemp flower, edibles, tinctures, and more. Explore nature's finest.</p>
       <div class="search-bar">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-        <input type="text" id="searchInput" placeholder="Search products..." oninput="handleSearch()">
+        <input type="text" id="searchInput" placeholder="Search products..." oninput="handleSearch()" autocomplete="off">
       </div>
     </div>
     <main>
@@ -583,8 +583,9 @@ function renderProducts() {
 }
 
 function openProduct(id) {
+  try {
   const p = products.find(x => x.id === id);
-  if (!p) return;
+  if (!p) { console.error('Product not found:', id); return; }
   modalQty = 1;
   document.getElementById('modalImg').innerHTML = p.image_url
     ? `<img src="${p.image_url}" alt="${esc(p.name)}" onerror="this.onerror=null;this.src='/images/default-product.svg'">`
@@ -618,6 +619,7 @@ function openProduct(id) {
   `;
   document.getElementById('productModal').classList.add('show');
   document.body.style.overflow = 'hidden';
+  } catch(e) { console.error('openProduct error:', e); }
 }
 
 function changeModalQty(delta) {
