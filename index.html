@@ -268,9 +268,38 @@ footer .footer-links a:hover{color:var(--green)}
   <!-- CHECKOUT VIEW -->
   <div class="view" id="checkoutView">
     <div class="checkout-view" style="display:block">
-      <button class="btn btn-secondary btn-sm" onclick="showView('shop')" style="margin-bottom:20px">← Back to Shop</button>
+      <button class="btn btn-secondary btn-sm" onclick="showView('shop')" style="margin-bottom:20px">&larr; Back to Shop</button>
       <h2>Checkout</h2>
       <div class="order-summary" id="checkoutSummary"></div>
+
+      <!-- Account section (shown for guests) -->
+      <div id="checkoutAuth" style="display:none">
+        <div style="background:var(--surface);border:1px solid var(--surface2);border-radius:var(--radius);padding:20px;margin-bottom:20px">
+          <h4 style="font-weight:700;margin-bottom:4px">Create an Account to Complete Your Order</h4>
+          <p style="color:var(--text-dim);font-size:.85rem;margin-bottom:16px">Already have an account? <a href="#" onclick="event.preventDefault();showAuth('login')" style="color:var(--green)">Sign in</a></p>
+          <div class="field">
+            <label>Your Name</label>
+            <input type="text" id="checkRegName" placeholder="John Doe">
+          </div>
+          <div class="field">
+            <label>Email</label>
+            <input type="email" id="checkRegEmail" placeholder="your@email.com">
+          </div>
+          <div class="field">
+            <label>Password</label>
+            <input type="password" id="checkRegPassword" placeholder="Create a password">
+          </div>
+        </div>
+      </div>
+
+      <!-- Logged-in greeting (shown for registered users) -->
+      <div id="checkoutUser" style="display:none">
+        <div style="background:var(--surface);border:1px solid var(--surface2);border-radius:var(--radius);padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between">
+          <span style="color:var(--text-dim);font-size:.9rem">Ordering as <strong style="color:var(--green)" id="checkoutUserName"></strong></span>
+          <span style="font-size:.8rem;color:var(--text-muted)">Not you? <a href="#" onclick="event.preventDefault();logout();goToCheckout()" style="color:var(--text-dim)">Switch</a></span>
+        </div>
+      </div>
+
       <div class="field">
         <label>Full Name</label>
         <input type="text" id="checkName" placeholder="John Doe">
@@ -283,7 +312,8 @@ footer .footer-links a:hover{color:var(--green)}
         <label>Shipping Address</label>
         <textarea id="checkAddress" rows="3" placeholder="123 Main St, City, State ZIP"></textarea>
       </div>
-      <button class="btn btn-primary" onclick="placeOrder()" style="width:100%;justify-content:center;margin-top:8px">Place Order</button>
+      <div id="checkoutError" style="display:none;color:var(--danger);font-size:.85rem;padding:10px;background:rgba(239,68,68,.1);border-radius:var(--radius-sm);margin-bottom:12px"></div>
+      <button class="btn btn-primary" onclick="placeOrder()" style="width:100%;justify-content:center;margin-top:8px" id="placeOrderBtn">Place Order</button>
     </div>
   </div>
 
@@ -315,7 +345,7 @@ footer .footer-links a:hover{color:var(--green)}
         <a href="/admin.html">Admin</a>
       </div>
       <p style="margin-top:16px">&copy; 2025 AIRWAVES. All rights reserved.</p>
-      <p style="margin-top:8px;color:var(--text-muted);font-size:.72rem">air-v.1.2.0</p>
+      <p style="margin-top:8px;color:var(--text-muted);font-size:.72rem">air-v.1.3.0</p>
     </div>
   </footer>
 </div>
@@ -639,31 +669,82 @@ function toggleCart() {
 
 // ============ CHECKOUT ============
 function goToCheckout() {
-  toggleCart();
+  if (document.getElementById('cartDrawer').classList.contains('show')) toggleCart();
   const summary = document.getElementById('checkoutSummary');
   summary.innerHTML = `
     <h4>Order Summary</h4>
-    ${cart.items.map(i => `<div class="summary-item"><span>${esc(i.name)} × ${i.quantity}</span><span>$${(parseFloat(i.price)*i.quantity).toFixed(2)}</span></div>`).join('')}
+    ${cart.items.map(i => `<div class="summary-item"><span>${esc(i.name)} &times; ${i.quantity}</span><span>$${(parseFloat(i.price)*i.quantity).toFixed(2)}</span></div>`).join('')}
     <div class="summary-total"><span>Total</span><span>$${(parseFloat(cart.total) + (parseFloat(cart.total) >= 75 ? 0 : 5.99)).toFixed(2)}</span></div>
   `;
+  document.getElementById('checkoutError').style.display = 'none';
+
   if (currentUser) {
+    // Logged in — show greeting, hide registration
+    document.getElementById('checkoutAuth').style.display = 'none';
+    document.getElementById('checkoutUser').style.display = 'block';
+    document.getElementById('checkoutUserName').textContent = currentUser.name || currentUser.email;
     document.getElementById('checkName').value = currentUser.name || '';
     document.getElementById('checkEmail').value = currentUser.email || '';
+  } else {
+    // Guest — show inline registration
+    document.getElementById('checkoutAuth').style.display = 'block';
+    document.getElementById('checkoutUser').style.display = 'none';
+    document.getElementById('checkName').value = '';
+    document.getElementById('checkEmail').value = '';
   }
   showView('checkout');
 }
 
 async function placeOrder() {
+  const errEl = document.getElementById('checkoutError');
+  errEl.style.display = 'none';
   const name = document.getElementById('checkName').value.trim();
   const email = document.getElementById('checkEmail').value.trim();
   const address = document.getElementById('checkAddress').value.trim();
-  if (!name || !email || !address) { toast('Please fill in all fields', true); return; }
+  if (!name || !email || !address) { errEl.textContent = 'Please fill in all shipping fields.'; errEl.style.display = 'block'; return; }
+
+  const btn = document.getElementById('placeOrderBtn');
+  btn.disabled = true;
+  btn.textContent = 'Processing...';
+
   try {
+    // If guest, register account first
+    if (!currentUser) {
+      const regName = document.getElementById('checkRegName').value.trim();
+      const regEmail = document.getElementById('checkRegEmail').value.trim();
+      const regPassword = document.getElementById('checkRegPassword').value;
+      if (!regName || !regEmail || !regPassword) {
+        errEl.textContent = 'Please fill in all account fields to create your account.';
+        errEl.style.display = 'block';
+        btn.disabled = false; btn.textContent = 'Place Order';
+        return;
+      }
+      if (regPassword.length < 4) {
+        errEl.textContent = 'Password must be at least 4 characters.';
+        errEl.style.display = 'block';
+        btn.disabled = false; btn.textContent = 'Place Order';
+        return;
+      }
+      // Register
+      const regData = await api('/api/auth?action=register', { method: 'POST', body: JSON.stringify({ email: regEmail, password: regPassword, name: regName }) });
+      authToken = regData.token;
+      localStorage.setItem('aw_token', regData.token);
+      currentUser = regData.user;
+      updateUserUI();
+    }
+
+    // Place order
     await api('/api/orders', { method: 'POST', body: JSON.stringify({ customer_name: name, customer_email: email, shipping_address: address }) });
     await loadCart();
     showView('success');
     toast('Order placed successfully!');
-  } catch (err) { toast('Error placing order: ' + err.message, true); }
+  } catch (err) {
+    errEl.textContent = err.message;
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Place Order';
+  }
 }
 
 // ============ AUTH ============
@@ -733,9 +814,10 @@ async function submitAuth() {
     currentUser = data.user;
     updateUserUI();
     closeAuth();
-    toast('Welcome, ' + currentUser.name + '!');
-    // Reload cart with user session
+    toast('Welcome, ' + (currentUser.name || 'back') + '!');
     await loadCart();
+    // If they were at checkout, refresh it with their info
+    if (document.getElementById('checkoutView').classList.contains('active')) goToCheckout();
   } catch (err) {
     errEl.textContent = err.message;
     errEl.style.display = 'block';
@@ -755,10 +837,10 @@ function logout() {
 function updateUserUI() {
   const btn = document.getElementById('navUser');
   if (currentUser) {
-    btn.textContent = currentUser.name.split(' ')[0];
+    btn.textContent = currentUser.name ? currentUser.name.split(' ')[0] : 'Account';
     btn.style.color = 'var(--green)';
   } else {
-    btn.textContent = 'Account';
+    btn.textContent = 'Guest';
     btn.style.color = '';
   }
 }
