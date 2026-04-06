@@ -175,6 +175,23 @@ main{max-width:1200px;margin:0 auto;padding:0 24px 80px}
 .order-success{text-align:center;padding:60px 20px}
 .order-success h2{color:var(--green);margin-bottom:12px}
 
+/* Payment Options */
+.payment-options{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+.payment-option{flex:1;min-width:120px;background:var(--surface);border:2px solid var(--surface3);border-radius:var(--radius);padding:16px;text-align:center;cursor:pointer;transition:all .2s}
+.payment-option:hover{border-color:var(--text-muted)}
+.payment-option.selected{border-color:var(--green);background:rgba(57,255,20,.05)}
+.payment-option .pay-icon{font-size:1.5rem;margin-bottom:6px}
+.payment-option .pay-name{font-weight:700;font-size:.85rem}
+.payment-option .pay-desc{font-size:.72rem;color:var(--text-muted);margin-top:2px}
+.qr-section{background:var(--surface);border:1px solid var(--surface2);border-radius:var(--radius);padding:24px;margin-bottom:20px;text-align:center}
+.qr-section h4{font-weight:700;margin-bottom:4px}
+.qr-section .qr-subtitle{color:var(--text-muted);font-size:.82rem;margin-bottom:16px}
+.qr-canvas{background:#fff;border-radius:var(--radius-sm);display:inline-block;padding:12px;margin-bottom:12px}
+.wallet-address{background:var(--surface2);border:1px solid var(--surface3);border-radius:var(--radius-sm);padding:10px 14px;font-family:monospace;font-size:.75rem;color:var(--text-dim);word-break:break-all;cursor:pointer;transition:border-color .2s;position:relative}
+.wallet-address:hover{border-color:var(--green)}
+.wallet-address::after{content:'Click to copy';position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:.68rem;color:var(--text-muted);font-family:'DM Sans',sans-serif}
+.crypto-amount{color:var(--green);font-family:'Archivo Black',sans-serif;font-size:1.1rem;margin:8px 0}
+
 /* Footer */
 footer{background:var(--surface);border-top:1px solid var(--surface2);padding:40px 24px;text-align:center}
 footer .footer-inner{max-width:1200px;margin:0 auto}
@@ -312,6 +329,38 @@ footer .footer-links a:hover{color:var(--green)}
         <label>Shipping Address</label>
         <textarea id="checkAddress" rows="3" placeholder="123 Main St, City, State ZIP"></textarea>
       </div>
+      <!-- Payment Method -->
+      <div class="field">
+        <label>Payment Method</label>
+      </div>
+      <div class="payment-options" id="paymentOptions">
+        <div class="payment-option" onclick="selectPayment('btc')" data-payment="btc">
+          <div class="pay-icon">&#x20bf;</div>
+          <div class="pay-name">Bitcoin</div>
+          <div class="pay-desc">BTC payment</div>
+        </div>
+        <div class="payment-option" onclick="selectPayment('xmr')" data-payment="xmr">
+          <div class="pay-icon">&#x0271;</div>
+          <div class="pay-name">Monero</div>
+          <div class="pay-desc">XMR payment</div>
+        </div>
+        <div class="payment-option" onclick="selectPayment('cash')" data-payment="cash">
+          <div class="pay-icon">&#x1f4b5;</div>
+          <div class="pay-name">Cash</div>
+          <div class="pay-desc">Pay on delivery</div>
+        </div>
+      </div>
+
+      <!-- Crypto QR Code (shown after order placed) -->
+      <div class="qr-section" id="cryptoQR" style="display:none">
+        <h4 id="qrTitle">Send Payment</h4>
+        <div class="qr-subtitle" id="qrSubtitle">Scan the QR code or copy the wallet address below</div>
+        <div class="crypto-amount" id="qrAmount"></div>
+        <div class="qr-canvas"><canvas id="qrCanvas"></canvas></div>
+        <div class="wallet-address" id="walletAddress" onclick="copyWallet()"></div>
+        <p style="color:var(--text-muted);font-size:.8rem;margin-top:12px">Order will be confirmed once payment is verified</p>
+      </div>
+
       <div id="checkoutError" style="display:none;color:var(--danger);font-size:.85rem;padding:10px;background:rgba(239,68,68,.1);border-radius:var(--radius-sm);margin-bottom:12px"></div>
       <button class="btn btn-primary" onclick="placeOrder()" style="width:100%;justify-content:center;margin-top:8px" id="placeOrderBtn">Place Order</button>
     </div>
@@ -408,6 +457,8 @@ let selectedCategory = 'all';
 let authMode = 'login';
 let modalQty = 1;
 let dbInitialized = false;
+let selectedPayment = null;
+let storeSettings = {};
 
 // ============ API ============
 async function api(path, options = {}) {
@@ -445,6 +496,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     } catch { authToken = null; localStorage.removeItem('aw_token'); }
   }
   // Load data
+  try { storeSettings = await api('/api/settings'); } catch {}
   await loadProducts();
   await loadCart();
 });
@@ -677,6 +729,10 @@ function goToCheckout() {
     <div class="summary-total"><span>Total</span><span>$${(parseFloat(cart.total) + (parseFloat(cart.total) >= 75 ? 0 : 5.99)).toFixed(2)}</span></div>
   `;
   document.getElementById('checkoutError').style.display = 'none';
+  document.getElementById('cryptoQR').style.display = 'none';
+  document.getElementById('placeOrderBtn').style.display = '';
+  selectedPayment = null;
+  document.querySelectorAll('.payment-option').forEach(o => o.classList.remove('selected'));
 
   if (currentUser) {
     // Logged in — show greeting, hide registration
@@ -702,6 +758,7 @@ async function placeOrder() {
   const email = document.getElementById('checkEmail').value.trim();
   const address = document.getElementById('checkAddress').value.trim();
   if (!name || !email || !address) { errEl.textContent = 'Please fill in all shipping fields.'; errEl.style.display = 'block'; return; }
+  if (!selectedPayment) { errEl.textContent = 'Please select a payment method.'; errEl.style.display = 'block'; return; }
 
   const btn = document.getElementById('placeOrderBtn');
   btn.disabled = true;
@@ -725,7 +782,6 @@ async function placeOrder() {
         btn.disabled = false; btn.textContent = 'Place Order';
         return;
       }
-      // Register
       const regData = await api('/api/auth?action=register', { method: 'POST', body: JSON.stringify({ email: regEmail, password: regPassword, name: regName }) });
       authToken = regData.token;
       localStorage.setItem('aw_token', regData.token);
@@ -733,17 +789,88 @@ async function placeOrder() {
       updateUserUI();
     }
 
-    // Place order
-    await api('/api/orders', { method: 'POST', body: JSON.stringify({ customer_name: name, customer_email: email, shipping_address: address }) });
+    // Place order with payment method
+    const result = await api('/api/orders', { method: 'POST', body: JSON.stringify({ customer_name: name, customer_email: email, shipping_address: address, payment_method: selectedPayment }) });
     await loadCart();
-    showView('success');
-    toast('Order placed successfully!');
+
+    if (selectedPayment === 'btc' || selectedPayment === 'xmr') {
+      showCryptoQR(selectedPayment, getOrderTotal(), result.order.orderNumber || result.order.id);
+      btn.style.display = 'none';
+    } else {
+      showView('success');
+      toast('Order placed! Pay cash on delivery.');
+    }
   } catch (err) {
     errEl.textContent = err.message;
     errEl.style.display = 'block';
   } finally {
     btn.disabled = false;
     btn.textContent = 'Place Order';
+  }
+}
+
+function selectPayment(method) {
+  selectedPayment = method;
+  document.querySelectorAll('.payment-option').forEach(o => o.classList.remove('selected'));
+  document.querySelector(`[data-payment="${method}"]`)?.classList.add('selected');
+}
+
+function getOrderTotal() {
+  const sub = parseFloat(cart.total);
+  return sub + (sub >= 75 ? 0 : 5.99);
+}
+
+function showCryptoQR(method, total, orderId) {
+  const qrSection = document.getElementById('cryptoQR');
+  const walletKey = method === 'btc' ? 'wallet_btc' : 'wallet_xmr';
+  const walletAddr = storeSettings[walletKey] || '';
+  const coinName = method === 'btc' ? 'Bitcoin (BTC)' : 'Monero (XMR)';
+  const coinSymbol = method === 'btc' ? 'BTC' : 'XMR';
+
+  document.getElementById('qrTitle').textContent = 'Send ' + coinName;
+  document.getElementById('qrSubtitle').textContent = 'Order #' + orderId + ' — Scan QR or copy address below';
+  document.getElementById('qrAmount').textContent = '$' + total.toFixed(2) + ' USD in ' + coinSymbol;
+  document.getElementById('walletAddress').textContent = walletAddr || 'Wallet address not configured — contact store';
+
+  if (walletAddr) {
+    const uri = method === 'btc' ? 'bitcoin:' + walletAddr : 'monero:' + walletAddr;
+    generateQR(uri);
+  }
+
+  qrSection.style.display = '';
+  qrSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  toast('Order placed! Complete your crypto payment.');
+}
+
+function copyWallet() {
+  const addr = document.getElementById('walletAddress').textContent;
+  if (!addr || addr.includes('not configured')) return;
+  navigator.clipboard.writeText(addr).then(() => toast('Wallet address copied!')).catch(() => {});
+}
+
+function generateQR(data) {
+  const canvas = document.getElementById('qrCanvas');
+  const size = 200;
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  if (typeof QRCode !== 'undefined') {
+    QRCode.toCanvas(canvas, data, { width: size, margin: 0, color: { dark: '#000', light: '#fff' } });
+  } else {
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, size, size);
+    ctx.fillStyle = '#000';
+    ctx.font = '11px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('QR Code', size/2, size/2 - 10);
+    ctx.font = '9px monospace';
+    ctx.fillText('Loading...', size/2, size/2 + 10);
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js';
+    script.onload = () => {
+      QRCode.toCanvas(canvas, data, { width: size, margin: 0, color: { dark: '#000', light: '#fff' } });
+    };
+    document.head.appendChild(script);
   }
 }
 
