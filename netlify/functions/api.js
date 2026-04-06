@@ -276,7 +276,7 @@ export async function handler(event) {
 
       if (method === 'POST') {
         if (!user) return json({ error: 'Not logged in' }, 401);
-        const { customer_name, customer_email, shipping_address } = JSON.parse(event.body || '{}');
+        const { customer_name, customer_email, shipping_address, payment_method } = JSON.parse(event.body || '{}');
         const sid = token;
         const cart = await sql`SELECT ci.*, p.name, p.price FROM cart_items ci JOIN products p ON ci.product_id = p.id WHERE ci.session_id = ${sid}`;
         if (!cart.length) return json({ error: 'Cart is empty' }, 400);
@@ -284,9 +284,11 @@ export async function handler(event) {
         const shipping = subtotal >= 75 ? 0 : 5.99;
         const total = subtotal + shipping;
         const orderId = 'o' + Date.now().toString(36);
-        const [orderCount] = await sql`SELECT COUNT(*)::int as count FROM orders`;
-        const orderNumber = 'AW-' + String((orderCount?.count || 0) + 1001).padStart(6, '0');
-        await sql`INSERT INTO orders (id, order_number, customer_id, customer_name, customer_email, shipping_address, subtotal, shipping, total, status) VALUES (${orderId}, ${orderNumber}, ${user.id}, ${customer_name}, ${customer_email}, ${shipping_address}, ${subtotal}, ${shipping}, ${total}, 'pending')`;
+        const [maxOrder] = await sql`SELECT order_number FROM orders WHERE order_number LIKE 'OR-%' ORDER BY order_number DESC LIMIT 1`;
+        const lastNum = maxOrder ? parseInt(maxOrder.order_number.replace('OR-', '')) : 0;
+        const orderNumber = 'OR-' + String(lastNum + 1).padStart(4, '0');
+        const payMethod = payment_method || 'cash';
+        await sql`INSERT INTO orders (id, order_number, customer_id, customer_name, customer_email, shipping_address, subtotal, shipping, total, payment_method, status) VALUES (${orderId}, ${orderNumber}, ${user.id}, ${customer_name}, ${customer_email}, ${shipping_address}, ${subtotal}, ${shipping}, ${total}, ${payMethod}, 'pending')`;
         const itemSummary = cart.map(i => `${i.quantity}x ${i.name}`).join(', ');
         for (const item of cart) {
           await sql`INSERT INTO order_items (order_id, product_id, product_name, product_price, quantity) VALUES (${orderId}, ${item.product_id}, ${item.name}, ${item.price}, ${item.quantity})`;

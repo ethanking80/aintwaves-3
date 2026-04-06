@@ -377,8 +377,9 @@ footer .footer-links a:hover{color:var(--green)}
   <!-- ORDER SUCCESS -->
   <div class="view" id="successView">
     <div class="order-success">
-      <div style="font-size:4rem;margin-bottom:16px">✓</div>
+      <div style="font-size:4rem;margin-bottom:16px">&#x2713;</div>
       <h2>Order Placed!</h2>
+      <div id="successOrderNumber" style="font-family:'Archivo Black',sans-serif;font-size:1.4rem;color:var(--green);margin-bottom:8px"></div>
       <p style="color:var(--text-dim);margin-bottom:24px">Thank you for your order. You'll receive a confirmation email shortly.</p>
       <button class="btn btn-primary" onclick="showView('shop')">Continue Shopping</button>
     </div>
@@ -793,8 +794,11 @@ async function placeOrder() {
     const result = await api('/api/orders', { method: 'POST', body: JSON.stringify({ customer_name: name, customer_email: email, shipping_address: address, payment_method: selectedPayment }) });
     await loadCart();
 
+    const orderNum = result.order.orderNumber || result.order.id;
+    document.getElementById('successOrderNumber').textContent = 'Order ' + orderNum;
+
     if (selectedPayment === 'btc' || selectedPayment === 'xmr') {
-      showCryptoQR(selectedPayment, getOrderTotal(), result.order.orderNumber || result.order.id);
+      showCryptoQR(selectedPayment, getOrderTotal(), orderNum);
       btn.style.display = 'none';
     } else {
       showView('success');
