@@ -23,11 +23,13 @@ function verifyPassword(password, stored) {
 }
 
 function generateToken(user) {
-  const payload = { id: user.id, email: user.email, role: user.role, name: user.name };
+  const payload = { id: user.id, email: user.email, role: user.role, name: user.name, language: user.language || 'en' };
   const data = Buffer.from(JSON.stringify(payload)).toString('base64url');
   const sig = crypto.createHmac('sha256', process.env.JWT_SECRET || 'airwaves-secret-key-2024').update(data).digest('base64url');
   return data + '.' + sig;
 }
+
+function sanitizeLang(l) { return (l === 'es') ? 'es' : 'en'; }
 
 export function verifyToken(token) {
   try {
@@ -48,10 +50,11 @@ export default async (req, context) => {
 
   try {
     if (req.method === 'POST' && action === 'register') {
-      const { email, password, name } = await req.json();
+      const { email, password, name, language } = await req.json();
       if (!email || !password || !name) {
         return new Response(JSON.stringify({ error: 'Email, password, and name are required' }), { status: 400, headers });
       }
+      const lang = sanitizeLang(language);
       // Check if user exists
       const existing = await sql`SELECT id FROM users WHERE email = ${email.toLowerCase()}`;
       if (existing.length > 0) {
@@ -59,12 +62,12 @@ export default async (req, context) => {
       }
       const passwordHash = hashPassword(password);
       const [user] = await sql`
-        INSERT INTO users (email, password_hash, name, role) 
-        VALUES (${email.toLowerCase()}, ${passwordHash}, ${name}, 'customer') 
-        RETURNING id, email, name, role
+        INSERT INTO users (email, password_hash, name, role, language)
+        VALUES (${email.toLowerCase()}, ${passwordHash}, ${name}, 'customer', ${lang})
+        RETURNING id, email, name, role, language
       `;
       const token = generateToken(user);
-      return new Response(JSON.stringify({ success: true, token, user: { id: user.id, email: user.email, name: user.name, role: user.role } }), { status: 201, headers });
+      return new Response(JSON.stringify({ success: true, token, user: { id: user.id, email: user.email, name: user.name, role: user.role, language: user.language || 'en' } }), { status: 201, headers });
     }
 
     if (req.method === 'POST' && action === 'login') {
@@ -77,7 +80,7 @@ export default async (req, context) => {
         return new Response(JSON.stringify({ error: 'Invalid email or password' }), { status: 401, headers });
       }
       const token = generateToken(user);
-      return new Response(JSON.stringify({ success: true, token, user: { id: user.id, email: user.email, name: user.name, role: user.role } }), { status: 200, headers });
+      return new Response(JSON.stringify({ success: true, token, user: { id: user.id, email: user.email, name: user.name, role: user.role, language: user.language || 'en' } }), { status: 200, headers });
     }
 
     if (req.method === 'GET' && action === 'me') {
@@ -86,10 +89,27 @@ export default async (req, context) => {
       const token = authHeader.replace('Bearer ', '');
       const payload = verifyToken(token);
       if (!payload) return new Response(JSON.stringify({ error: 'Invalid token' }), { status: 401, headers });
+      // Refresh language from DB in case it changed
+      try {
+        const [u] = await sql`SELECT language FROM users WHERE id = ${payload.id}`;
+        if (u && u.language) payload.language = u.language;
+      } catch {}
       return new Response(JSON.stringify({ user: payload }), { status: 200, headers });
     }
 
-    return new Response(JSON.stringify({ error: 'Invalid action. Use ?action=login, ?action=register, or ?action=me' }), { status: 400, headers });
+    if (req.method === 'POST' && action === 'language') {
+      const authHeader = req.headers.get('Authorization');
+      if (!authHeader) return new Response(JSON.stringify({ error: 'Not authenticated' }), { status: 401, headers });
+      const token = authHeader.replace('Bearer ', '');
+      const payload = verifyToken(token);
+      if (!payload) return new Response(JSON.stringify({ error: 'Invalid token' }), { status: 401, headers });
+      const { language } = await req.json();
+      const lang = sanitizeLang(language);
+      await sql`UPDATE users SET language = ${lang} WHERE id = ${payload.id}`;
+      return new Response(JSON.stringify({ success: true, language: lang }), { status: 200, headers });
+    }
+
+    return new Response(JSON.stringify({ error: 'Invalid action. Use ?action=login, ?action=register, ?action=me, or ?action=language' }), { status: 400, headers });
   } catch (error) {
     console.error('Auth Error:', error);
     return new Response(JSON.stringify({ error: 'Server error: ' + error.message }), { status: 500, headers });

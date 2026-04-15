@@ -210,6 +210,11 @@ footer .footer-links a:hover{color:var(--green)}
 @keyframes spin{to{transform:rotate(360deg)}}
 .loading-overlay{display:flex;align-items:center;justify-content:center;min-height:200px}
 
+/* Language toggle */
+.lang-toggle{display:inline-flex;background:var(--surface2);border:1px solid var(--surface3);border-radius:50px;padding:2px;margin-left:6px}
+.lang-toggle button{background:transparent;color:var(--text-muted);padding:4px 10px;border-radius:50px;font-size:.72rem;font-weight:700;letter-spacing:.05em;transition:all .2s}
+.lang-toggle button.active{background:var(--green);color:#000}
+
 /* Responsive */
 @media(max-width:768px){
   nav{gap:4px}
@@ -217,6 +222,7 @@ footer .footer-links a:hover{color:var(--green)}
   .products-grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
   .hero h2{font-size:1.8rem}
   .modal-body .specs{grid-template-columns:1fr}
+  .lang-toggle button{padding:4px 8px;font-size:.68rem}
 }
 
 /* Page transitions */
@@ -231,10 +237,10 @@ footer .footer-links a:hover{color:var(--green)}
 <div class="age-gate" id="ageGate">
   <img src="/images/logo.jpg" alt="AIRWAVES">
   <h1>((( AIRWAVES )))</h1>
-  <p>Premium Hemp Products — You must be 21 or older to enter this site. By entering, you confirm you meet the age requirement in your jurisdiction.</p>
+  <p data-i18n="age.warning">Premium Hemp Products — You must be 21 or older to enter this site. By entering, you confirm you meet the age requirement in your jurisdiction.</p>
   <div class="age-buttons">
-    <button class="btn btn-primary" onclick="verifyAge(true)">I'm 21 or Older</button>
-    <button class="btn btn-secondary" onclick="verifyAge(false)">Under 21</button>
+    <button class="btn btn-primary" onclick="verifyAge(true)" data-i18n="age.over">I'm 21 or Older</button>
+    <button class="btn btn-secondary" onclick="verifyAge(false)" data-i18n="age.under">Under 21</button>
   </div>
 </div>
 
@@ -246,17 +252,21 @@ footer .footer-links a:hover{color:var(--green)}
       <span>AIRWAVES</span>
     </div>
     <nav>
-      <button onclick="showView('shop')" id="navShop" class="active">Shop</button>
+      <button onclick="showView('shop')" id="navShop" class="active" data-i18n="nav.shop">Shop</button>
       <button onclick="toggleCart()" id="navCart">
-        Cart
+        <span data-i18n="nav.cart">Cart</span>
         <span class="cart-badge" id="cartBadge" style="display:none">0</span>
       </button>
       <div class="user-menu">
-        <button onclick="handleUserClick()" id="navUser">Account</button>
+        <button onclick="handleUserClick()" id="navUser" data-i18n="nav.account">Account</button>
         <div class="user-dropdown" id="userDropdown">
-          <button onclick="showView('orders')">My Orders</button>
-          <button onclick="logout()">Sign Out</button>
+          <button onclick="showView('orders')" data-i18n="nav.myOrders">My Orders</button>
+          <button onclick="logout()" data-i18n="nav.signOut">Sign Out</button>
         </div>
+      </div>
+      <div class="lang-toggle" role="group" aria-label="Language">
+        <button id="langEn" onclick="setLanguage('en')" class="active">EN</button>
+        <button id="langEs" onclick="setLanguage('es')">ES</button>
       </div>
     </nav>
   </div>
@@ -268,11 +278,11 @@ footer .footer-links a:hover{color:var(--green)}
   <!-- SHOP VIEW -->
   <div class="view active" id="shopView">
     <div class="hero">
-      <h2>Premium <span class="gr">Hemp Products</span><br>Delivered to You</h2>
-      <p>Lab-tested, farm-fresh hemp flower, edibles, tinctures, and more. Explore nature's finest.</p>
+      <h2 data-i18n-html="hero.title">Premium <span class="gr">Hemp Products</span><br>Delivered to You</h2>
+      <p data-i18n="hero.subtitle">Lab-tested, farm-fresh hemp flower, edibles, tinctures, and more. Explore nature's finest.</p>
       <div class="search-bar">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-        <input type="text" id="searchInput" placeholder="Search products..." oninput="handleSearch()" autocomplete="off">
+        <input type="text" id="searchInput" placeholder="Search products..." data-i18n-placeholder="hero.searchPlaceholder" oninput="handleSearch()" autocomplete="off">
       </div>
     </div>
     <main>
@@ -285,26 +295,26 @@ footer .footer-links a:hover{color:var(--green)}
   <!-- CHECKOUT VIEW -->
   <div class="view" id="checkoutView">
     <div class="checkout-view" style="display:block">
-      <button class="btn btn-secondary btn-sm" onclick="showView('shop')" style="margin-bottom:20px">&larr; Back to Shop</button>
-      <h2>Checkout</h2>
+      <button class="btn btn-secondary btn-sm" onclick="showView('shop')" style="margin-bottom:20px" data-i18n="checkout.back">&larr; Back to Shop</button>
+      <h2 data-i18n="checkout.title">Checkout</h2>
       <div class="order-summary" id="checkoutSummary"></div>
 
       <!-- Account section (shown for guests) -->
       <div id="checkoutAuth" style="display:none">
         <div style="background:var(--surface);border:1px solid var(--surface2);border-radius:var(--radius);padding:20px;margin-bottom:20px">
-          <h4 style="font-weight:700;margin-bottom:4px">Create an Account to Complete Your Order</h4>
-          <p style="color:var(--text-dim);font-size:.85rem;margin-bottom:16px">Already have an account? <a href="#" onclick="event.preventDefault();showAuth('login')" style="color:var(--green)">Sign in</a></p>
+          <h4 style="font-weight:700;margin-bottom:4px" data-i18n="checkout.createAccount">Create an Account to Complete Your Order</h4>
+          <p style="color:var(--text-dim);font-size:.85rem;margin-bottom:16px" data-i18n-html="checkout.alreadyHaveAccount">Already have an account? <a href="#" onclick="event.preventDefault();showAuth('login')" style="color:var(--green)">Sign in</a></p>
           <div class="field">
-            <label>Your Name</label>
-            <input type="text" id="checkRegName" placeholder="John Doe">
+            <label data-i18n="checkout.yourName">Your Name</label>
+            <input type="text" id="checkRegName" placeholder="John Doe" data-i18n-placeholder="checkout.namePlaceholder">
           </div>
           <div class="field">
-            <label>Email</label>
+            <label data-i18n="auth.email">Email</label>
             <input type="email" id="checkRegEmail" placeholder="your@email.com">
           </div>
           <div class="field">
-            <label>Password</label>
-            <input type="password" id="checkRegPassword" placeholder="Create a password">
+            <label data-i18n="auth.password">Password</label>
+            <input type="password" id="checkRegPassword" placeholder="Create a password" data-i18n-placeholder="checkout.createPasswordPlaceholder">
           </div>
         </div>
       </div>
@@ -312,42 +322,42 @@ footer .footer-links a:hover{color:var(--green)}
       <!-- Logged-in greeting (shown for registered users) -->
       <div id="checkoutUser" style="display:none">
         <div style="background:var(--surface);border:1px solid var(--surface2);border-radius:var(--radius);padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between">
-          <span style="color:var(--text-dim);font-size:.9rem">Ordering as <strong style="color:var(--green)" id="checkoutUserName"></strong></span>
-          <span style="font-size:.8rem;color:var(--text-muted)">Not you? <a href="#" onclick="event.preventDefault();logout();goToCheckout()" style="color:var(--text-dim)">Switch</a></span>
+          <span style="color:var(--text-dim);font-size:.9rem"><span data-i18n="checkout.orderingAs">Ordering as</span> <strong style="color:var(--green)" id="checkoutUserName"></strong></span>
+          <span style="font-size:.8rem;color:var(--text-muted)" data-i18n-html="checkout.notYou">Not you? <a href="#" onclick="event.preventDefault();logout();goToCheckout()" style="color:var(--text-dim)">Switch</a></span>
         </div>
       </div>
 
       <div class="field">
-        <label>Full Name</label>
-        <input type="text" id="checkName" placeholder="John Doe">
+        <label data-i18n="checkout.fullName">Full Name</label>
+        <input type="text" id="checkName" placeholder="John Doe" data-i18n-placeholder="checkout.namePlaceholder">
       </div>
       <div class="field">
-        <label>Email</label>
+        <label data-i18n="auth.email">Email</label>
         <input type="email" id="checkEmail" placeholder="your@email.com">
       </div>
       <div class="field">
-        <label>Shipping Address</label>
-        <textarea id="checkAddress" rows="3" placeholder="123 Main St, City, State ZIP"></textarea>
+        <label data-i18n="checkout.shippingAddress">Shipping Address</label>
+        <textarea id="checkAddress" rows="3" placeholder="123 Main St, City, State ZIP" data-i18n-placeholder="checkout.addressPlaceholder"></textarea>
       </div>
       <!-- Payment Method -->
       <div class="field">
-        <label>Payment Method</label>
+        <label data-i18n="checkout.paymentMethod">Payment Method</label>
       </div>
       <div class="payment-options" id="paymentOptions">
         <div class="payment-option" onclick="selectPayment('btc')" data-payment="btc">
           <div class="pay-icon">&#x20bf;</div>
-          <div class="pay-name">Bitcoin</div>
-          <div class="pay-desc">BTC payment</div>
+          <div class="pay-name" data-i18n="pay.btc">Bitcoin</div>
+          <div class="pay-desc" data-i18n="pay.btcDesc">BTC payment</div>
         </div>
         <div class="payment-option" onclick="selectPayment('xmr')" data-payment="xmr">
           <div class="pay-icon">&#x0271;</div>
-          <div class="pay-name">Monero</div>
-          <div class="pay-desc">XMR payment</div>
+          <div class="pay-name" data-i18n="pay.xmr">Monero</div>
+          <div class="pay-desc" data-i18n="pay.xmrDesc">XMR payment</div>
         </div>
         <div class="payment-option" onclick="selectPayment('cash')" data-payment="cash">
           <div class="pay-icon">&#x1f4b5;</div>
-          <div class="pay-name">Cash</div>
-          <div class="pay-desc">Pay on delivery</div>
+          <div class="pay-name" data-i18n="pay.cash">Cash</div>
+          <div class="pay-desc" data-i18n="pay.cashDesc">Pay on delivery</div>
         </div>
       </div>
 
@@ -358,18 +368,18 @@ footer .footer-links a:hover{color:var(--green)}
         <div class="crypto-amount" id="qrAmount"></div>
         <div class="qr-canvas"><canvas id="qrCanvas"></canvas></div>
         <div class="wallet-address" id="walletAddress" onclick="copyWallet()"></div>
-        <p style="color:var(--text-muted);font-size:.8rem;margin-top:12px">Order will be confirmed once payment is verified</p>
+        <p style="color:var(--text-muted);font-size:.8rem;margin-top:12px" data-i18n="checkout.paymentVerify">Order will be confirmed once payment is verified</p>
       </div>
 
       <div id="checkoutError" style="display:none;color:var(--danger);font-size:.85rem;padding:10px;background:rgba(239,68,68,.1);border-radius:var(--radius-sm);margin-bottom:12px"></div>
-      <button class="btn btn-primary" onclick="placeOrder()" style="width:100%;justify-content:center;margin-top:8px" id="placeOrderBtn">Place Order</button>
+      <button class="btn btn-primary" onclick="placeOrder()" style="width:100%;justify-content:center;margin-top:8px" id="placeOrderBtn" data-i18n="checkout.placeOrder">Place Order</button>
     </div>
   </div>
 
   <!-- ORDERS VIEW -->
   <div class="view" id="ordersView">
     <main style="padding-top:40px">
-      <h2 style="font-family:'Archivo Black',sans-serif;margin-bottom:24px">My Orders</h2>
+      <h2 style="font-family:'Archivo Black',sans-serif;margin-bottom:24px" data-i18n="orders.title">My Orders</h2>
       <div id="ordersList"></div>
     </main>
   </div>
@@ -378,27 +388,27 @@ footer .footer-links a:hover{color:var(--green)}
   <div class="view" id="successView">
     <div class="order-success">
       <div style="font-size:4rem;margin-bottom:16px">&#x2713;</div>
-      <h2>Order Placed!</h2>
+      <h2 data-i18n="success.title">Order Placed!</h2>
       <div id="successOrderNumber" style="font-family:'Archivo Black',sans-serif;font-size:1.4rem;color:var(--green);margin-bottom:8px"></div>
-      <p style="color:var(--text-dim);margin-bottom:24px">Thank you for your order. You'll receive a confirmation email shortly.</p>
-      <button class="btn btn-primary" onclick="showView('shop')">Continue Shopping</button>
+      <p style="color:var(--text-dim);margin-bottom:24px" data-i18n="success.thanks">Thank you for your order. You'll receive a confirmation email shortly.</p>
+      <button class="btn btn-primary" onclick="showView('shop')" data-i18n="success.continue">Continue Shopping</button>
     </div>
   </div>
 
   <!-- FOOTER -->
   <div style="background:linear-gradient(135deg,rgba(57,255,20,.12),rgba(6,182,212,.08));border-top:1px solid rgba(57,255,20,.2);border-bottom:1px solid rgba(57,255,20,.2);padding:16px 24px;text-align:center">
-    <p style="font-family:'Archivo Black',sans-serif;font-size:1rem;color:var(--green);margin-bottom:4px">&#x1f69a; FREE DELIVERY TO ALL 5 BOROUGHS!</p>
+    <p style="font-family:'Archivo Black',sans-serif;font-size:1rem;color:var(--green);margin-bottom:4px" data-i18n="footer.delivery">&#x1f69a; FREE DELIVERY TO ALL 5 BOROUGHS!</p>
     <p style="color:var(--text-dim);font-size:.82rem">Manhattan &middot; Brooklyn &middot; Queens &middot; The Bronx &middot; Staten Island</p>
   </div>
   <footer>
     <div class="footer-inner">
       <div class="brand">((( AIRWAVES )))</div>
-      <p>Premium hemp products, lab-tested for quality and compliance.</p>
-      <p style="margin-top:4px">All products contain less than 0.3% THC.</p>
+      <p data-i18n="footer.tagline">Premium hemp products, lab-tested for quality and compliance.</p>
+      <p style="margin-top:4px" data-i18n="footer.thc">All products contain less than 0.3% THC.</p>
       <div class="footer-links">
-        <a href="/admin.html">Admin</a>
+        <a href="/admin.html" data-i18n="footer.admin">Admin</a>
       </div>
-      <p style="margin-top:16px">&copy; 2025 AIRWAVES. All rights reserved.</p>
+      <p style="margin-top:16px" data-i18n="footer.copyright">&copy; 2025 AIRWAVES. All rights reserved.</p>
       <p style="margin-top:8px;color:var(--text-muted);font-size:.72rem">air-v.1.3.0</p>
     </div>
   </footer>
@@ -417,18 +427,18 @@ footer .footer-links a:hover{color:var(--green)}
 <div class="cart-overlay" id="cartOverlay" onclick="toggleCart()"></div>
 <div class="cart-drawer" id="cartDrawer">
   <div class="cart-header">
-    <h3>Your Cart</h3>
+    <h3 data-i18n="cart.title">Your Cart</h3>
     <button class="modal-close" onclick="toggleCart()" style="position:static;width:32px;height:32px;font-size:.9rem">×</button>
   </div>
   <div class="cart-items" id="cartItems">
     <div class="cart-empty" id="cartEmpty">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z"/></svg>
-      <p>Your cart is empty</p>
+      <p data-i18n="cart.empty">Your cart is empty</p>
     </div>
   </div>
   <div class="cart-footer" id="cartFooter" style="display:none">
     <div class="cart-totals" id="cartTotals"></div>
-    <button class="btn btn-primary" onclick="goToCheckout()" style="width:100%;justify-content:center">Proceed to Checkout</button>
+    <button class="btn btn-primary" onclick="goToCheckout()" style="width:100%;justify-content:center" data-i18n="cart.proceed">Proceed to Checkout</button>
   </div>
 </div>
 
@@ -436,10 +446,10 @@ footer .footer-links a:hover{color:var(--green)}
 <div class="auth-modal" id="authModal">
   <div class="auth-box">
     <button class="modal-close" onclick="closeAuth()" style="position:absolute;top:16px;right:16px">×</button>
-    <h3 id="authTitle">Sign In</h3>
-    <p class="subtitle" id="authSubtitle">Welcome back to AIRWAVES</p>
+    <h3 id="authTitle" data-i18n="auth.signIn">Sign In</h3>
+    <p class="subtitle" id="authSubtitle" data-i18n="auth.welcomeBack">Welcome back to AIRWAVES</p>
     <div id="authFields"></div>
-    <button class="btn btn-primary" id="authSubmit" onclick="submitAuth()" style="width:100%;justify-content:center;margin-top:8px">Sign In</button>
+    <button class="btn btn-primary" id="authSubmit" onclick="submitAuth()" style="width:100%;justify-content:center;margin-top:8px" data-i18n="auth.signIn">Sign In</button>
     <div class="error-msg" id="authError"></div>
     <div class="switch-mode">
       <span id="authSwitch"></span>
@@ -451,19 +461,132 @@ footer .footer-links a:hover{color:var(--green)}
 <div class="toast" id="toast"></div>
 
 <script>
-// ============ STATE ============
-let products = [];
-let cart = { items: [], total: '0.00', count: 0 };
-let currentUser = null;
-let authToken = localStorage.getItem('aw_token');
-let sessionId = localStorage.getItem('aw_session') || ('s_' + Math.random().toString(36).substr(2, 12));
+// ============ STATE (declared first to avoid TDZ) ============
+var products = [];
+var cart = { items: [], total: '0.00', count: 0 };
+var currentUser = null;
+var authToken = localStorage.getItem('aw_token');
+var sessionId = localStorage.getItem('aw_session') || ('s_' + Math.random().toString(36).substr(2, 12));
 localStorage.setItem('aw_session', sessionId);
-let selectedCategory = 'all';
-let authMode = 'login';
-let modalQty = 1;
-let dbInitialized = false;
-let selectedPayment = null;
-let storeSettings = {};
+var selectedCategory = 'all';
+var authMode = 'login';
+var modalQty = 1;
+var dbInitialized = false;
+var selectedPayment = null;
+var storeSettings = {};
+
+// ============ I18N ============
+const I18N = {
+  en: {
+    'nav.shop':'Shop','nav.cart':'Cart','nav.account':'Account','nav.guest':'Guest','nav.myOrders':'My Orders','nav.signOut':'Sign Out',
+    'age.warning':"Premium Hemp Products — You must be 21 or older to enter this site. By entering, you confirm you meet the age requirement in your jurisdiction.",
+    'age.over':"I'm 21 or Older",'age.under':'Under 21','age.denied':'Sorry, you must be 21 or older to access this site.','age.leave':'Leave Site',
+    'hero.title':'Premium <span class="gr">Hemp Products</span><br>Delivered to You',
+    'hero.subtitle':"Lab-tested, farm-fresh hemp flower, edibles, tinctures, and more. Explore nature's finest.",
+    'hero.searchPlaceholder':'Search products...',
+    'cat.all':'All Products','cat.Flower':'Flower','cat.Pre-Rolls':'Pre-Rolls','cat.Tinctures':'Tinctures','cat.Edibles':'Edibles','cat.Concentrates':'Concentrates','cat.Topicals':'Topicals','cat.General':'General',
+    'strain.Sativa':'Sativa','strain.Indica':'Indica','strain.Hybrid':'Hybrid','strain.N/A':'N/A',
+    'product.featured':'Featured','product.type':'Type','product.thc':'THC','product.cbd':'CBD','product.weight':'Weight','product.cbdLabel':'CBD:',
+    'product.inStock':'In Stock','product.lowStock':'Only {n} left','product.outStock':'Out of Stock','product.addToCart':'Add to Cart',
+    'product.addToCartPrice':'Add to Cart — ${price}','product.loadError':'Unable to load products. Please try again later.','product.notFound':'No products found.',
+    'cart.title':'Your Cart','cart.empty':'Your cart is empty','cart.subtotal':'Subtotal','cart.shipping':'Shipping','cart.free':'Free','cart.total':'Total','cart.proceed':'Proceed to Checkout',
+    'checkout.back':'← Back to Shop','checkout.title':'Checkout','checkout.orderSummary':'Order Summary',
+    'checkout.createAccount':'Create an Account to Complete Your Order','checkout.alreadyHaveAccount':'Already have an account? <a href="#" onclick="event.preventDefault();showAuth(\'login\')" style="color:var(--green)">Sign in</a>',
+    'checkout.yourName':'Your Name','checkout.namePlaceholder':'John Doe','checkout.createPasswordPlaceholder':'Create a password',
+    'checkout.orderingAs':'Ordering as','checkout.notYou':'Not you? <a href="#" onclick="event.preventDefault();logout();goToCheckout()" style="color:var(--text-dim)">Switch</a>',
+    'checkout.fullName':'Full Name','checkout.shippingAddress':'Shipping Address','checkout.addressPlaceholder':'123 Main St, City, State ZIP',
+    'checkout.paymentMethod':'Payment Method','checkout.paymentVerify':'Order will be confirmed once payment is verified',
+    'checkout.placeOrder':'Place Order','checkout.processing':'Processing...',
+    'checkout.errorFields':'Please fill in all shipping fields.','checkout.errorPayment':'Please select a payment method.',
+    'checkout.errorAccountFields':'Please fill in all account fields to create your account.','checkout.errorPasswordLen':'Password must be at least 4 characters.',
+    'pay.btc':'Bitcoin','pay.btcDesc':'BTC payment','pay.xmr':'Monero','pay.xmrDesc':'XMR payment','pay.cash':'Cash','pay.cashDesc':'Pay on delivery',
+    'qr.send':'Send {coin}','qr.subtitle':'Order #{id} — Scan QR or copy address below','qr.amount':'${total} USD in {sym}','qr.notConfigured':'Wallet address not configured — contact store',
+    'auth.signIn':'Sign In','auth.welcomeBack':'Welcome back to AIRWAVES','auth.createAccount':'Create Account','auth.join':'Join the AIRWAVES community',
+    'auth.name':'Name','auth.yourName':'Your name','auth.email':'Email','auth.password':'Password',
+    'auth.noAccount':'Don\'t have an account? <a href="#" onclick="event.preventDefault();showAuth(\'register\')">Sign Up</a>',
+    'auth.hasAccount':'Already have an account? <a href="#" onclick="event.preventDefault();showAuth(\'login\')">Sign In</a>',
+    'auth.errorFields':'Please fill in all fields','auth.errorName':'Please enter your name',
+    'success.title':'Order Placed!','success.order':'Order {n}','success.thanks':"Thank you for your order. You'll receive a confirmation email shortly.",'success.continue':'Continue Shopping',
+    'orders.title':'My Orders','orders.empty':'No orders yet.','orders.order':'Order {n}',
+    'status.pending':'pending','status.shipped':'shipped','status.delivered':'delivered','status.cancelled':'cancelled',
+    'footer.delivery':'🚚 FREE DELIVERY TO ALL 5 BOROUGHS!','footer.tagline':'Premium hemp products, lab-tested for quality and compliance.','footer.thc':'All products contain less than 0.3% THC.','footer.admin':'Admin','footer.copyright':'© 2025 AIRWAVES. All rights reserved.',
+    'toast.added':'Added to cart!','toast.addError':'Error adding to cart','toast.updateError':'Error updating cart','toast.removeError':'Error removing item',
+    'toast.copied':'Wallet address copied!','toast.welcome':'Welcome, {name}!','toast.welcomeBack':'back','toast.signedOut':'Signed out',
+    'toast.orderPlacedCash':'Order placed! Pay cash on delivery.','toast.orderPlacedCrypto':'Order placed! Complete your crypto payment.'
+  },
+  es: {
+    'nav.shop':'Tienda','nav.cart':'Carrito','nav.account':'Cuenta','nav.guest':'Invitado','nav.myOrders':'Mis Pedidos','nav.signOut':'Cerrar Sesión',
+    'age.warning':'Productos Premium de Cáñamo — Debes tener 21 años o más para entrar a este sitio. Al entrar, confirmas que cumples con el requisito de edad en tu jurisdicción.',
+    'age.over':'Tengo 21 o más','age.under':'Menor de 21','age.denied':'Lo sentimos, debes tener 21 años o más para acceder a este sitio.','age.leave':'Salir del Sitio',
+    'hero.title':'<span class="gr">Productos de Cáñamo</span><br>Premium a Tu Puerta',
+    'hero.subtitle':'Flor de cáñamo, comestibles, tinturas y más — probados en laboratorio y frescos de la granja. Descubre lo mejor de la naturaleza.',
+    'hero.searchPlaceholder':'Buscar productos...',
+    'cat.all':'Todos los Productos','cat.Flower':'Flor','cat.Pre-Rolls':'Pre-Rollados','cat.Tinctures':'Tinturas','cat.Edibles':'Comestibles','cat.Concentrates':'Concentrados','cat.Topicals':'Tópicos','cat.General':'General',
+    'strain.Sativa':'Sativa','strain.Indica':'Indica','strain.Hybrid':'Híbrida','strain.N/A':'N/D',
+    'product.featured':'Destacado','product.type':'Tipo','product.thc':'THC','product.cbd':'CBD','product.weight':'Peso','product.cbdLabel':'CBD:',
+    'product.inStock':'En Stock','product.lowStock':'Solo quedan {n}','product.outStock':'Agotado','product.addToCart':'Añadir al Carrito',
+    'product.addToCartPrice':'Añadir al Carrito — ${price}','product.loadError':'No se pudieron cargar los productos. Inténtalo más tarde.','product.notFound':'No se encontraron productos.',
+    'cart.title':'Tu Carrito','cart.empty':'Tu carrito está vacío','cart.subtotal':'Subtotal','cart.shipping':'Envío','cart.free':'Gratis','cart.total':'Total','cart.proceed':'Proceder al Pago',
+    'checkout.back':'← Volver a la Tienda','checkout.title':'Pago','checkout.orderSummary':'Resumen del Pedido',
+    'checkout.createAccount':'Crea una Cuenta para Completar Tu Pedido','checkout.alreadyHaveAccount':'¿Ya tienes una cuenta? <a href="#" onclick="event.preventDefault();showAuth(\'login\')" style="color:var(--green)">Iniciar sesión</a>',
+    'checkout.yourName':'Tu Nombre','checkout.namePlaceholder':'Juan Pérez','checkout.createPasswordPlaceholder':'Crea una contraseña',
+    'checkout.orderingAs':'Pedido a nombre de','checkout.notYou':'¿No eres tú? <a href="#" onclick="event.preventDefault();logout();goToCheckout()" style="color:var(--text-dim)">Cambiar</a>',
+    'checkout.fullName':'Nombre Completo','checkout.shippingAddress':'Dirección de Envío','checkout.addressPlaceholder':'Calle 123, Ciudad, Estado, CP',
+    'checkout.paymentMethod':'Método de Pago','checkout.paymentVerify':'El pedido se confirmará una vez verificado el pago',
+    'checkout.placeOrder':'Realizar Pedido','checkout.processing':'Procesando...',
+    'checkout.errorFields':'Por favor completa todos los campos de envío.','checkout.errorPayment':'Por favor selecciona un método de pago.',
+    'checkout.errorAccountFields':'Por favor completa todos los campos de cuenta para crearla.','checkout.errorPasswordLen':'La contraseña debe tener al menos 4 caracteres.',
+    'pay.btc':'Bitcoin','pay.btcDesc':'Pago en BTC','pay.xmr':'Monero','pay.xmrDesc':'Pago en XMR','pay.cash':'Efectivo','pay.cashDesc':'Paga al recibir',
+    'qr.send':'Enviar {coin}','qr.subtitle':'Pedido #{id} — Escanea el QR o copia la dirección a continuación','qr.amount':'${total} USD en {sym}','qr.notConfigured':'Dirección de billetera no configurada — contacta a la tienda',
+    'auth.signIn':'Iniciar Sesión','auth.welcomeBack':'Bienvenido de nuevo a AIRWAVES','auth.createAccount':'Crear Cuenta','auth.join':'Únete a la comunidad AIRWAVES',
+    'auth.name':'Nombre','auth.yourName':'Tu nombre','auth.email':'Correo','auth.password':'Contraseña',
+    'auth.noAccount':'¿No tienes una cuenta? <a href="#" onclick="event.preventDefault();showAuth(\'register\')">Regístrate</a>',
+    'auth.hasAccount':'¿Ya tienes una cuenta? <a href="#" onclick="event.preventDefault();showAuth(\'login\')">Iniciar Sesión</a>',
+    'auth.errorFields':'Por favor completa todos los campos','auth.errorName':'Por favor ingresa tu nombre',
+    'success.title':'¡Pedido Realizado!','success.order':'Pedido {n}','success.thanks':'Gracias por tu pedido. Recibirás un correo de confirmación en breve.','success.continue':'Seguir Comprando',
+    'orders.title':'Mis Pedidos','orders.empty':'Aún no hay pedidos.','orders.order':'Pedido {n}',
+    'status.pending':'pendiente','status.shipped':'enviado','status.delivered':'entregado','status.cancelled':'cancelado',
+    'footer.delivery':'🚚 ¡ENVÍO GRATIS A LOS 5 CONDADOS!','footer.tagline':'Productos de cáñamo premium, probados en laboratorio para calidad y cumplimiento.','footer.thc':'Todos los productos contienen menos del 0.3% de THC.','footer.admin':'Admin','footer.copyright':'© 2025 AIRWAVES. Todos los derechos reservados.',
+    'toast.added':'¡Añadido al carrito!','toast.addError':'Error al añadir al carrito','toast.updateError':'Error al actualizar el carrito','toast.removeError':'Error al eliminar artículo',
+    'toast.copied':'¡Dirección copiada!','toast.welcome':'¡Bienvenido, {name}!','toast.welcomeBack':'de nuevo','toast.signedOut':'Sesión cerrada',
+    'toast.orderPlacedCash':'¡Pedido realizado! Paga en efectivo al recibir.','toast.orderPlacedCrypto':'¡Pedido realizado! Completa tu pago con criptomoneda.'
+  }
+};
+let currentLang = localStorage.getItem('aw_lang') || 'en';
+function t(key, vars) {
+  let s = (I18N[currentLang] && I18N[currentLang][key]) || (I18N.en[key] || key);
+  if (vars) for (const k in vars) s = s.replace('{' + k + '}', vars[k]);
+  return s;
+}
+function tCategory(c) { if (!c) return ''; const k = 'cat.' + c; const v = t(k); return v === k ? c : v; }
+function tStrain(s) { if (!s) return ''; const k = 'strain.' + s; const v = t(k); return v === k ? s : v; }
+function applyLanguage() {
+  document.documentElement.lang = currentLang;
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.getAttribute('data-i18n')); });
+  document.querySelectorAll('[data-i18n-html]').forEach(el => { el.innerHTML = t(el.getAttribute('data-i18n-html')); });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => { el.placeholder = t(el.getAttribute('data-i18n-placeholder')); });
+  const en = document.getElementById('langEn'), es = document.getElementById('langEs');
+  if (en && es) { en.classList.toggle('active', currentLang === 'en'); es.classList.toggle('active', currentLang === 'es'); }
+  // Re-render dynamic parts
+  if (typeof products !== 'undefined' && products.length) { try { renderCategories(); renderProducts(); } catch {} }
+  if (typeof cart !== 'undefined') { try { updateCartUI(); } catch {} }
+  try { updateUserUI(); } catch {}
+  const coView = document.getElementById('checkoutView');
+  if (coView && coView.classList.contains('active')) { try { refreshCheckoutSummary(); } catch {} }
+  const ordView = document.getElementById('ordersView');
+  if (ordView && ordView.classList.contains('active')) { try { loadOrders(); } catch {} }
+}
+async function setLanguage(lang) {
+  if (lang !== 'en' && lang !== 'es') return;
+  currentLang = lang;
+  localStorage.setItem('aw_lang', lang);
+  applyLanguage();
+  if (authToken) {
+    try { await api('/api/auth?action=language', { method: 'POST', body: JSON.stringify({ language: lang }) }); } catch {}
+  }
+}
+
+// (state declared above)
 
 // ============ API ============
 async function api(path, options = {}) {
@@ -484,6 +607,8 @@ async function api(path, options = {}) {
 
 // ============ INIT ============
 document.addEventListener('DOMContentLoaded', async () => {
+  // Apply language immediately so static text shows in the saved language
+  applyLanguage();
   // Check age verification
   if (localStorage.getItem('aw_age_verified') === 'true') {
     document.getElementById('ageGate').style.display = 'none';
@@ -497,6 +622,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
       const data = await api('/api/auth?action=me');
       currentUser = data.user;
+      // Sync server-side language preference for logged-in users
+      if (currentUser && currentUser.language && currentUser.language !== currentLang) {
+        currentLang = currentUser.language;
+        localStorage.setItem('aw_lang', currentLang);
+        applyLanguage();
+      }
       updateUserUI();
     } catch { authToken = null; localStorage.removeItem('aw_token'); }
   }
@@ -514,8 +645,8 @@ function verifyAge(isOldEnough) {
     document.getElementById('mainHeader').style.display = '';
     document.getElementById('mainContent').style.display = '';
   } else {
-    document.querySelector('.age-gate p').textContent = 'Sorry, you must be 21 or older to access this site.';
-    document.querySelector('.age-buttons').innerHTML = '<button class="btn btn-secondary" onclick="window.location.href=\'https://google.com\'">Leave Site</button>';
+    document.querySelector('.age-gate p').textContent = t('age.denied');
+    document.querySelector('.age-buttons').innerHTML = '<button class="btn btn-secondary" onclick="window.location.href=\'https://google.com\'">' + t('age.leave') + '</button>';
   }
 }
 
@@ -528,7 +659,7 @@ async function loadProducts() {
     renderProducts();
   } catch (err) {
     console.error('Error loading products:', err);
-    document.getElementById('productsGrid').innerHTML = '<p style="color:var(--text-muted);grid-column:1/-1;text-align:center;padding:40px">Unable to load products. Please try again later.</p>';
+    document.getElementById('productsGrid').innerHTML = '<p style="color:var(--text-muted);grid-column:1/-1;text-align:center;padding:40px">' + t('product.loadError') + '</p>';
   } finally {
     document.getElementById('productsLoading').style.display = 'none';
   }
@@ -537,7 +668,7 @@ async function loadProducts() {
 function renderCategories() {
   const cats = ['all', ...new Set(products.map(p => p.category).filter(Boolean))];
   document.getElementById('categories').innerHTML = cats.map(c =>
-    `<button class="cat-btn${c === selectedCategory ? ' active' : ''}" onclick="filterCategory('${c}')">${c === 'all' ? 'All Products' : c}</button>`
+    `<button class="cat-btn${c === selectedCategory ? ' active' : ''}" onclick="filterCategory('${c}')">${c === 'all' ? t('cat.all') : esc(tCategory(c))}</button>`
   ).join('');
 }
 
@@ -558,29 +689,29 @@ function renderProducts() {
   if (search) filtered = filtered.filter(p => p.name.toLowerCase().includes(search) || (p.description || '').toLowerCase().includes(search));
   
   if (filtered.length === 0) {
-    document.getElementById('productsGrid').innerHTML = '<p style="color:var(--text-muted);grid-column:1/-1;text-align:center;padding:40px">No products found.</p>';
+    document.getElementById('productsGrid').innerHTML = '<p style="color:var(--text-muted);grid-column:1/-1;text-align:center;padding:40px">' + t('product.notFound') + '</p>';
     return;
   }
-  
+
   document.getElementById('productsGrid').innerHTML = filtered.map(p => `
     <div class="product-card" onclick="openProduct(${p.id})">
-      ${p.featured ? '<div class="badge">Featured</div>' : ''}
+      ${p.featured ? `<div class="badge">${esc(t('product.featured'))}</div>` : ''}
       <div class="product-img">
         ${p.image_url ? `<img src="${p.image_url}" alt="${esc(p.name)}" onerror="this.onerror=null;this.src='/images/default-product.svg'">` : `<img src="/images/default-product.svg" alt="${esc(p.name)}">`}
       </div>
       <div class="product-info">
-        <div class="cat">${esc(p.category || '')}</div>
+        <div class="cat">${esc(tCategory(p.category || ''))}</div>
         <h3>${esc(p.name)}</h3>
         <div class="desc">${esc(p.description || '')}</div>
         <div class="meta">
-          ${p.strain_type && p.strain_type !== 'N/A' ? `<span>${esc(p.strain_type)}</span>` : ''}
-          ${p.cbd_content ? `<span>CBD: ${esc(p.cbd_content)}</span>` : ''}
+          ${p.strain_type && p.strain_type !== 'N/A' ? `<span>${esc(tStrain(p.strain_type))}</span>` : ''}
+          ${p.cbd_content ? `<span>${esc(t('product.cbdLabel'))} ${esc(p.cbd_content)}</span>` : ''}
           ${p.weight ? `<span>${esc(p.weight)}</span>` : ''}
         </div>
       </div>
       <div class="product-footer">
         <div class="product-price">$${parseFloat(p.price).toFixed(2)}</div>
-        <button class="add-cart-btn" onclick="event.stopPropagation();addToCart(${p.id})" title="Add to cart">+</button>
+        <button class="add-cart-btn" onclick="event.stopPropagation();addToCart(${p.id})" title="${esc(t('product.addToCart'))}">+</button>
       </div>
     </div>
   `).join('');
@@ -596,18 +727,18 @@ function openProduct(id) {
     : `<img src="/images/default-product.svg" alt="${esc(p.name)}">`;
   
   const stockClass = p.stock > 10 ? 'in-stock' : p.stock > 0 ? 'low-stock' : 'out-stock';
-  const stockText = p.stock > 10 ? 'In Stock' : p.stock > 0 ? `Only ${p.stock} left` : 'Out of Stock';
-  
+  const stockText = p.stock > 10 ? t('product.inStock') : p.stock > 0 ? t('product.lowStock', { n: p.stock }) : t('product.outStock');
+
   document.getElementById('modalBody').innerHTML = `
-    <div class="cat">${esc(p.category || '')}</div>
+    <div class="cat">${esc(tCategory(p.category || ''))}</div>
     <h2>${esc(p.name)}</h2>
     <div class="price">$${parseFloat(p.price).toFixed(2)}</div>
     <div class="description">${esc(p.description || '')}</div>
     <div class="specs">
-      ${p.strain_type && p.strain_type !== 'N/A' ? `<div class="spec"><label>Type</label><span>${esc(p.strain_type)}</span></div>` : ''}
-      ${p.thc_content ? `<div class="spec"><label>THC</label><span>${esc(p.thc_content)}</span></div>` : ''}
-      ${p.cbd_content ? `<div class="spec"><label>CBD</label><span>${esc(p.cbd_content)}</span></div>` : ''}
-      ${p.weight ? `<div class="spec"><label>Weight</label><span>${esc(p.weight)}</span></div>` : ''}
+      ${p.strain_type && p.strain_type !== 'N/A' ? `<div class="spec"><label>${esc(t('product.type'))}</label><span>${esc(tStrain(p.strain_type))}</span></div>` : ''}
+      ${p.thc_content ? `<div class="spec"><label>${esc(t('product.thc'))}</label><span>${esc(p.thc_content)}</span></div>` : ''}
+      ${p.cbd_content ? `<div class="spec"><label>${esc(t('product.cbd'))}</label><span>${esc(p.cbd_content)}</span></div>` : ''}
+      ${p.weight ? `<div class="spec"><label>${esc(t('product.weight'))}</label><span>${esc(p.weight)}</span></div>` : ''}
     </div>
     <div class="qty-row">
       <div class="qty-ctrl">
@@ -615,10 +746,10 @@ function openProduct(id) {
         <span id="modalQtyDisplay">1</span>
         <button onclick="changeModalQty(1)">+</button>
       </div>
-      <span class="stock-info ${stockClass}">${stockText}</span>
+      <span class="stock-info ${stockClass}">${esc(stockText)}</span>
     </div>
     <button class="btn btn-primary" onclick="addToCart(${p.id}, modalQty);closeProductModal()" style="width:100%;justify-content:center" ${p.stock === 0 ? 'disabled style="opacity:.5;cursor:not-allowed;width:100%;justify-content:center"' : ''}>
-      ${p.stock === 0 ? 'Out of Stock' : 'Add to Cart — $' + (parseFloat(p.price) * modalQty).toFixed(2)}
+      ${p.stock === 0 ? esc(t('product.outStock')) : esc(t('product.addToCartPrice', { price: (parseFloat(p.price) * modalQty).toFixed(2) }))}
     </button>
   `;
   document.getElementById('productModal').classList.add('show');
@@ -649,22 +780,22 @@ async function addToCart(productId, qty = 1) {
   try {
     await api('/api/cart', { method: 'POST', body: JSON.stringify({ product_id: productId, quantity: qty }) });
     await loadCart();
-    toast('Added to cart!');
-  } catch (err) { toast('Error adding to cart', true); }
+    toast(t('toast.added'));
+  } catch (err) { toast(t('toast.addError'), true); }
 }
 
 async function updateCartItem(itemId, qty) {
   try {
     await api('/api/cart?id=' + itemId, { method: 'PUT', body: JSON.stringify({ quantity: qty }) });
     await loadCart();
-  } catch (err) { toast('Error updating cart', true); }
+  } catch (err) { toast(t('toast.updateError'), true); }
 }
 
 async function removeCartItem(itemId) {
   try {
     await api('/api/cart?id=' + itemId, { method: 'DELETE' });
     await loadCart();
-  } catch (err) { toast('Error removing item', true); }
+  } catch (err) { toast(t('toast.removeError'), true); }
 }
 
 function updateCartUI() {
@@ -714,9 +845,9 @@ function updateCartUI() {
   });
   
   document.getElementById('cartTotals').innerHTML = `
-    <div class="row"><span>Subtotal</span><span>$${cart.total}</span></div>
-    <div class="row"><span>Shipping</span><span>${parseFloat(cart.total) >= 75 ? 'Free' : '$5.99'}</span></div>
-    <div class="row total"><span>Total</span><span>$${(parseFloat(cart.total) + (parseFloat(cart.total) >= 75 ? 0 : 5.99)).toFixed(2)}</span></div>
+    <div class="row"><span>${esc(t('cart.subtotal'))}</span><span>$${cart.total}</span></div>
+    <div class="row"><span>${esc(t('cart.shipping'))}</span><span>${parseFloat(cart.total) >= 75 ? esc(t('cart.free')) : '$5.99'}</span></div>
+    <div class="row total"><span>${esc(t('cart.total'))}</span><span>$${(parseFloat(cart.total) + (parseFloat(cart.total) >= 75 ? 0 : 5.99)).toFixed(2)}</span></div>
   `;
 }
 
@@ -727,14 +858,19 @@ function toggleCart() {
 }
 
 // ============ CHECKOUT ============
+function refreshCheckoutSummary() {
+  const summary = document.getElementById('checkoutSummary');
+  if (!summary) return;
+  summary.innerHTML = `
+    <h4>${esc(t('checkout.orderSummary'))}</h4>
+    ${cart.items.map(i => `<div class="summary-item"><span>${esc(i.name)} &times; ${i.quantity}</span><span>$${(parseFloat(i.price)*i.quantity).toFixed(2)}</span></div>`).join('')}
+    <div class="summary-total"><span>${esc(t('cart.total'))}</span><span>$${(parseFloat(cart.total) + (parseFloat(cart.total) >= 75 ? 0 : 5.99)).toFixed(2)}</span></div>
+  `;
+}
+
 function goToCheckout() {
   if (document.getElementById('cartDrawer').classList.contains('show')) toggleCart();
-  const summary = document.getElementById('checkoutSummary');
-  summary.innerHTML = `
-    <h4>Order Summary</h4>
-    ${cart.items.map(i => `<div class="summary-item"><span>${esc(i.name)} &times; ${i.quantity}</span><span>$${(parseFloat(i.price)*i.quantity).toFixed(2)}</span></div>`).join('')}
-    <div class="summary-total"><span>Total</span><span>$${(parseFloat(cart.total) + (parseFloat(cart.total) >= 75 ? 0 : 5.99)).toFixed(2)}</span></div>
-  `;
+  refreshCheckoutSummary();
   document.getElementById('checkoutError').style.display = 'none';
   document.getElementById('cryptoQR').style.display = 'none';
   document.getElementById('placeOrderBtn').style.display = '';
@@ -764,12 +900,12 @@ async function placeOrder() {
   const name = document.getElementById('checkName').value.trim();
   const email = document.getElementById('checkEmail').value.trim();
   const address = document.getElementById('checkAddress').value.trim();
-  if (!name || !email || !address) { errEl.textContent = 'Please fill in all shipping fields.'; errEl.style.display = 'block'; return; }
-  if (!selectedPayment) { errEl.textContent = 'Please select a payment method.'; errEl.style.display = 'block'; return; }
+  if (!name || !email || !address) { errEl.textContent = t('checkout.errorFields'); errEl.style.display = 'block'; return; }
+  if (!selectedPayment) { errEl.textContent = t('checkout.errorPayment'); errEl.style.display = 'block'; return; }
 
   const btn = document.getElementById('placeOrderBtn');
   btn.disabled = true;
-  btn.textContent = 'Processing...';
+  btn.textContent = t('checkout.processing');
 
   try {
     // If guest, register account first
@@ -778,15 +914,15 @@ async function placeOrder() {
       const regEmail = document.getElementById('checkRegEmail').value.trim();
       const regPassword = document.getElementById('checkRegPassword').value;
       if (!regName || !regEmail || !regPassword) {
-        errEl.textContent = 'Please fill in all account fields to create your account.';
+        errEl.textContent = t('checkout.errorAccountFields');
         errEl.style.display = 'block';
-        btn.disabled = false; btn.textContent = 'Place Order';
+        btn.disabled = false; btn.textContent = t('checkout.placeOrder');
         return;
       }
       if (regPassword.length < 4) {
-        errEl.textContent = 'Password must be at least 4 characters.';
+        errEl.textContent = t('checkout.errorPasswordLen');
         errEl.style.display = 'block';
-        btn.disabled = false; btn.textContent = 'Place Order';
+        btn.disabled = false; btn.textContent = t('checkout.placeOrder');
         return;
       }
       const regData = await api('/api/auth?action=register', { method: 'POST', body: JSON.stringify({ email: regEmail, password: regPassword, name: regName }) });
@@ -801,21 +937,21 @@ async function placeOrder() {
     await loadCart();
 
     const orderNum = result.order.orderNumber || result.order.id;
-    document.getElementById('successOrderNumber').textContent = 'Order ' + orderNum;
+    document.getElementById('successOrderNumber').textContent = t('success.order', { n: orderNum });
 
     if (selectedPayment === 'btc' || selectedPayment === 'xmr') {
       showCryptoQR(selectedPayment, getOrderTotal(), orderNum);
       btn.style.display = 'none';
     } else {
       showView('success');
-      toast('Order placed! Pay cash on delivery.');
+      toast(t('toast.orderPlacedCash'));
     }
   } catch (err) {
     errEl.textContent = err.message;
     errEl.style.display = 'block';
   } finally {
     btn.disabled = false;
-    btn.textContent = 'Place Order';
+    btn.textContent = t('checkout.placeOrder');
   }
 }
 
@@ -837,10 +973,10 @@ function showCryptoQR(method, total, orderId) {
   const coinName = method === 'btc' ? 'Bitcoin (BTC)' : 'Monero (XMR)';
   const coinSymbol = method === 'btc' ? 'BTC' : 'XMR';
 
-  document.getElementById('qrTitle').textContent = 'Send ' + coinName;
-  document.getElementById('qrSubtitle').textContent = 'Order #' + orderId + ' — Scan QR or copy address below';
-  document.getElementById('qrAmount').textContent = '$' + total.toFixed(2) + ' USD in ' + coinSymbol;
-  document.getElementById('walletAddress').textContent = walletAddr || 'Wallet address not configured — contact store';
+  document.getElementById('qrTitle').textContent = t('qr.send', { coin: coinName });
+  document.getElementById('qrSubtitle').textContent = t('qr.subtitle', { id: orderId });
+  document.getElementById('qrAmount').textContent = t('qr.amount', { total: total.toFixed(2), sym: coinSymbol });
+  document.getElementById('walletAddress').textContent = walletAddr || t('qr.notConfigured');
 
   if (walletAddr) {
     const uri = method === 'btc' ? 'bitcoin:' + walletAddr : 'monero:' + walletAddr;
@@ -849,13 +985,13 @@ function showCryptoQR(method, total, orderId) {
 
   qrSection.style.display = '';
   qrSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  toast('Order placed! Complete your crypto payment.');
+  toast(t('toast.orderPlacedCrypto'));
 }
 
 function copyWallet() {
   const addr = document.getElementById('walletAddress').textContent;
-  if (!addr || addr.includes('not configured')) return;
-  navigator.clipboard.writeText(addr).then(() => toast('Wallet address copied!')).catch(() => {});
+  if (!addr || addr === t('qr.notConfigured')) return;
+  navigator.clipboard.writeText(addr).then(() => toast(t('toast.copied'))).catch(() => {});
 }
 
 function generateQR(data) {
@@ -902,23 +1038,21 @@ document.addEventListener('click', (e) => {
 function showAuth(mode) {
   authMode = mode;
   const modal = document.getElementById('authModal');
-  document.getElementById('authTitle').textContent = mode === 'login' ? 'Sign In' : 'Create Account';
-  document.getElementById('authSubtitle').textContent = mode === 'login' ? 'Welcome back to AIRWAVES' : 'Join the AIRWAVES community';
+  document.getElementById('authTitle').textContent = mode === 'login' ? t('auth.signIn') : t('auth.createAccount');
+  document.getElementById('authSubtitle').textContent = mode === 'login' ? t('auth.welcomeBack') : t('auth.join');
   document.getElementById('authError').style.display = 'none';
-  
+
   let fields = '';
   if (mode === 'register') {
-    fields += '<div class="field"><label>Name</label><input type="text" id="authName" placeholder="Your name"></div>';
+    fields += `<div class="field"><label>${esc(t('auth.name'))}</label><input type="text" id="authName" placeholder="${esc(t('auth.yourName'))}"></div>`;
   }
-  fields += '<div class="field"><label>Email</label><input type="email" id="authEmail" placeholder="your@email.com"></div>';
-  fields += '<div class="field"><label>Password</label><input type="password" id="authPassword" placeholder="••••••••" onkeydown="if(event.key===\'Enter\')submitAuth()"></div>';
+  fields += `<div class="field"><label>${esc(t('auth.email'))}</label><input type="email" id="authEmail" placeholder="your@email.com"></div>`;
+  fields += `<div class="field"><label>${esc(t('auth.password'))}</label><input type="password" id="authPassword" placeholder="••••••••" onkeydown="if(event.key===\'Enter\')submitAuth()"></div>`;
   document.getElementById('authFields').innerHTML = fields;
-  
-  document.getElementById('authSubmit').textContent = mode === 'login' ? 'Sign In' : 'Create Account';
-  document.getElementById('authSwitch').innerHTML = mode === 'login' 
-    ? 'Don\'t have an account? <a href="#" onclick="event.preventDefault();showAuth(\'register\')">Sign Up</a>'
-    : 'Already have an account? <a href="#" onclick="event.preventDefault();showAuth(\'login\')">Sign In</a>';
-  
+
+  document.getElementById('authSubmit').textContent = mode === 'login' ? t('auth.signIn') : t('auth.createAccount');
+  document.getElementById('authSwitch').innerHTML = mode === 'login' ? t('auth.noAccount') : t('auth.hasAccount');
+
   modal.classList.add('show');
   document.body.style.overflow = 'hidden';
   setTimeout(() => { const el = document.getElementById(mode === 'register' ? 'authName' : 'authEmail'); if (el) el.focus(); }, 100);
@@ -935,25 +1069,30 @@ async function submitAuth() {
   const errEl = document.getElementById('authError');
   errEl.style.display = 'none';
   
-  if (!email || !password) { errEl.textContent = 'Please fill in all fields'; errEl.style.display = 'block'; return; }
-  
+  if (!email || !password) { errEl.textContent = t('auth.errorFields'); errEl.style.display = 'block'; return; }
+
   try {
     let data;
     if (authMode === 'register') {
       const name = document.getElementById('authName')?.value.trim();
-      if (!name) { errEl.textContent = 'Please enter your name'; errEl.style.display = 'block'; return; }
-      data = await api('/api/auth?action=register', { method: 'POST', body: JSON.stringify({ email, password, name }) });
+      if (!name) { errEl.textContent = t('auth.errorName'); errEl.style.display = 'block'; return; }
+      data = await api('/api/auth?action=register', { method: 'POST', body: JSON.stringify({ email, password, name, language: currentLang }) });
     } else {
       data = await api('/api/auth?action=login', { method: 'POST', body: JSON.stringify({ email, password }) });
     }
     authToken = data.token;
     localStorage.setItem('aw_token', data.token);
     currentUser = data.user;
+    // Sync server-side language preference for returning users
+    if (currentUser && currentUser.language && currentUser.language !== currentLang) {
+      currentLang = currentUser.language;
+      localStorage.setItem('aw_lang', currentLang);
+      applyLanguage();
+    }
     updateUserUI();
     closeAuth();
-    toast('Welcome, ' + (currentUser.name || 'back') + '!');
+    toast(t('toast.welcome', { name: currentUser.name || t('toast.welcomeBack') }));
     await loadCart();
-    // If they were at checkout, refresh it with their info
     if (document.getElementById('checkoutView').classList.contains('active')) goToCheckout();
   } catch (err) {
     errEl.textContent = err.message;
@@ -968,17 +1107,17 @@ function logout() {
   localStorage.removeItem('aw_token');
   updateUserUI();
   document.getElementById('userDropdown').classList.remove('show');
-  toast('Signed out');
+  toast(t('toast.signedOut'));
   loadCart();
 }
 
 function updateUserUI() {
   const btn = document.getElementById('navUser');
   if (currentUser) {
-    btn.textContent = currentUser.name ? currentUser.name.split(' ')[0] : 'Account';
+    btn.textContent = currentUser.name ? currentUser.name.split(' ')[0] : t('nav.account');
     btn.style.color = 'var(--green)';
   } else {
-    btn.textContent = 'Guest';
+    btn.textContent = t('nav.guest');
     btn.style.color = '';
   }
 }
@@ -999,21 +1138,25 @@ async function loadOrders() {
     const orders = await api('/api/orders');
     const el = document.getElementById('ordersList');
     if (orders.length === 0) {
-      el.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:40px">No orders yet.</p>';
+      el.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:40px">' + t('orders.empty') + '</p>';
       return;
     }
-    el.innerHTML = orders.map(o => `
+    const locale = currentLang === 'es' ? 'es-ES' : 'en-US';
+    el.innerHTML = orders.map(o => {
+      const statusKey = 'status.' + o.status;
+      const statusLabel = t(statusKey) === statusKey ? o.status : t(statusKey);
+      return `
       <div style="background:var(--surface);border:1px solid var(--surface2);border-radius:var(--radius);padding:20px;margin-bottom:12px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-          <strong>Order ${o.order_number || o.id}</strong>
-          <span style="font-size:.8rem;padding:4px 10px;border-radius:50px;background:${o.status==='pending'?'rgba(245,158,11,.15);color:var(--warning)':o.status==='shipped'?'rgba(6,182,212,.15);color:var(--blue)':'rgba(34,197,94,.15);color:var(--success)'}">${o.status}</span>
+          <strong>${esc(t('orders.order', { n: o.order_number || o.id }))}</strong>
+          <span style="font-size:.8rem;padding:4px 10px;border-radius:50px;background:${o.status==='pending'?'rgba(245,158,11,.15);color:var(--warning)':o.status==='shipped'?'rgba(6,182,212,.15);color:var(--blue)':'rgba(34,197,94,.15);color:var(--success)'}">${esc(statusLabel)}</span>
         </div>
         <div style="display:flex;justify-content:space-between;font-size:.88rem;color:var(--text-dim)">
-          <span>${new Date(o.created_at).toLocaleDateString()}</span>
+          <span>${new Date(o.created_at).toLocaleDateString(locale)}</span>
           <span style="color:var(--green);font-weight:700">$${parseFloat(o.total).toFixed(2)}</span>
         </div>
       </div>
-    `).join('');
+    `;}).join('');
   } catch (err) { console.error(err); }
 }
 
