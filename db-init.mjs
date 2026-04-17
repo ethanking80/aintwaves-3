@@ -48,9 +48,14 @@ export default async (req, context) => {
         zip VARCHAR(20) DEFAULT '',
         notes TEXT DEFAULT '',
         age_verified BOOLEAN DEFAULT false,
+        language VARCHAR(5) DEFAULT 'en',
         created_at TIMESTAMP DEFAULT NOW()
       )
     `;
+
+    // Add language column to existing customers / users tables if missing
+    await sql`ALTER TABLE customers ADD COLUMN IF NOT EXISTS language VARCHAR(5) DEFAULT 'en'`;
+    try { await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS language VARCHAR(5) DEFAULT 'en'`; } catch {}
 
     // Create sessions table
     await sql`
