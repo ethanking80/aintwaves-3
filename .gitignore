@@ -1,3 +1,8 @@
 # Local Netlify folder
 .netlify
 node_modules/
+
+# Claude / local dev
+.claude/settings.local.json
+.claude/worktrees/
+deno.lock
