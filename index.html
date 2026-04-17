@@ -466,7 +466,7 @@ var products = [];
 var cart = { items: [], total: '0.00', count: 0 };
 var currentUser = null;
 var authToken = localStorage.getItem('aw_token');
-var sessionId = localStorage.getItem('aw_session') || ('s_' + Math.random().toString(36).substr(2, 12));
+var sessionId = localStorage.getItem('aw_session') || ('s_' + Array.from(window.crypto.getRandomValues(new Uint8Array(6))).map(function(b){ return b.toString(16).padStart(2,'0'); }).join(''));
 localStorage.setItem('aw_session', sessionId);
 var selectedCategory = 'all';
 var authMode = 'login';
