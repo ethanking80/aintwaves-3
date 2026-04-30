@@ -140,6 +140,11 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--green);color:#000;padding:12px 24px;border-radius:var(--radius);font-weight:700;font-size:.88rem;z-index:999;transition:transform .3s;box-shadow:0 8px 30px rgba(57,255,20,.3)}
 .toast.show{transform:translateX(-50%) translateY(0)}
 
+/* Language toggle */
+.lang-toggle{display:inline-flex;background:var(--surface2);border:1px solid var(--surface3);border-radius:50px;padding:2px;margin:10px 14px 0}
+.lang-toggle button{background:transparent;color:var(--text-muted);padding:4px 10px;border-radius:50px;font-size:.72rem;font-weight:700;letter-spacing:.05em;transition:all .2s;width:auto!important;text-align:center!important}
+.lang-toggle button.active{background:var(--green);color:#000}
+
 /* Responsive */
 @media(max-width:768px){
   .sidebar{width:60px}
@@ -148,6 +153,8 @@ tr:hover td{background:rgba(255,255,255,.02)}
   .content{margin-left:60px;padding:16px}
   .form-grid{grid-template-columns:1fr}
   .stat-grid{grid-template-columns:1fr 1fr}
+  .lang-toggle{margin:8px auto;padding:2px}
+  .lang-toggle button{padding:4px 6px;font-size:.65rem}
 }
 
 .view{display:none}
@@ -161,18 +168,24 @@ tr:hover td{background:rgba(255,255,255,.02)}
 <div class="login-page" id="loginPage">
   <div class="login-box">
     <img src="/images/logo.jpg" alt="AIRWAVES">
-    <h1>Admin Dashboard</h1>
-    <p class="sub">Sign in to manage your store</p>
+    <h1 data-i18n="login.title">Admin Dashboard</h1>
+    <p class="sub" data-i18n="login.subtitle">Sign in to manage your store</p>
     <div class="field">
-      <label>Email</label>
+      <label data-i18n="common.email">Email</label>
       <input type="email" id="loginEmail" placeholder="admin@airwaves.com">
     </div>
     <div class="field">
-      <label>Password</label>
+      <label data-i18n="common.password">Password</label>
       <input type="password" id="loginPassword" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
     </div>
-    <button class="btn btn-primary" onclick="doLogin()" style="width:100%;justify-content:center;margin-top:8px">Sign In</button>
+    <button class="btn btn-primary" onclick="doLogin()" style="width:100%;justify-content:center;margin-top:8px" data-i18n="login.signIn">Sign In</button>
     <div class="error" id="loginError"></div>
+    <div style="display:flex;justify-content:center;margin-top:14px">
+      <div class="lang-toggle" role="group" aria-label="Language">
+        <button id="loginLangEn" onclick="setLanguage('en')" class="active">EN</button>
+        <button id="loginLangEs" onclick="setLanguage('es')">ES</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -184,70 +197,74 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <span>AIRWAVES</span>
     </div>
     <nav>
-      <button class="active" onclick="showSection('dashboard')" data-section="dashboard">&#x1f4ca; <span>Dashboard</span></button>
-      <button onclick="showSection('products')" data-section="products">&#x1f4e6; <span>Products</span></button>
-      <button onclick="showSection('orders')" data-section="orders">&#x1f6d2; <span>Orders</span></button>
-      <button onclick="showSection('customers')" data-section="customers">&#x1f465; <span>Customers</span></button>
-      <button onclick="showSection('logs')" data-section="logs">&#x1f4dc; <span>Activity Log</span></button>
-      <button onclick="showSection('settings')" data-section="settings">&#x2699;&#xfe0f; <span>Settings</span></button>
+      <button class="active" onclick="showSection('dashboard')" data-section="dashboard">&#x1f4ca; <span data-i18n="nav.dashboard">Dashboard</span></button>
+      <button onclick="showSection('products')" data-section="products">&#x1f4e6; <span data-i18n="nav.products">Products</span></button>
+      <button onclick="showSection('orders')" data-section="orders">&#x1f6d2; <span data-i18n="nav.orders">Orders</span></button>
+      <button onclick="showSection('customers')" data-section="customers">&#x1f465; <span data-i18n="nav.customers">Customers</span></button>
+      <button onclick="showSection('logs')" data-section="logs">&#x1f4dc; <span data-i18n="nav.logs">Activity Log</span></button>
+      <button onclick="showSection('settings')" data-section="settings">&#x2699;&#xfe0f; <span data-i18n="nav.settings">Settings</span></button>
     </nav>
+    <div class="lang-toggle" role="group" aria-label="Language">
+      <button id="langEn" onclick="setLanguage('en')" class="active">EN</button>
+      <button id="langEs" onclick="setLanguage('es')">ES</button>
+    </div>
     <div class="sidebar-footer">
-      <a href="/">&#x2190; Back to Store</a>
-      <a href="#" onclick="event.preventDefault();adminLogout()">Sign Out</a>
+      <a href="/" data-i18n="nav.backToStore">&#x2190; Back to Store</a>
+      <a href="#" onclick="event.preventDefault();adminLogout()" data-i18n="nav.signOut">Sign Out</a>
     </div>
   </div>
 
   <div class="content">
     <!-- ====== DASHBOARD ====== -->
     <div class="view active" id="dashboardView">
-      <div class="section-header"><h2>Dashboard</h2><span style="color:var(--text-muted);font-size:.85rem" id="welcomeMsg"></span></div>
+      <div class="section-header"><h2 data-i18n="dashboard.title">Dashboard</h2><span style="color:var(--text-muted);font-size:.85rem" id="welcomeMsg"></span></div>
 
       <div class="stat-grid" id="statsGrid">
         <div class="stat-card">
           <div class="icon">&#x1f4b0;</div>
-          <div class="label">Total Revenue</div>
+          <div class="label" data-i18n="dashboard.revenue">Total Revenue</div>
           <div class="value green" id="statRevenue">$0.00</div>
-          <div class="sub-value" id="statRevenueNote">All time</div>
+          <div class="sub-value" id="statRevenueNote" data-i18n="dashboard.allTime">All time</div>
         </div>
         <div class="stat-card">
           <div class="icon">&#x1f6d2;</div>
-          <div class="label">Orders</div>
+          <div class="label" data-i18n="nav.orders">Orders</div>
           <div class="value purple" id="statOrders">0</div>
           <div class="sub-value" id="statPending">0 pending</div>
         </div>
         <div class="stat-card">
           <div class="icon">&#x1f4e6;</div>
-          <div class="label">Products</div>
+          <div class="label" data-i18n="nav.products">Products</div>
           <div class="value blue" id="statProducts">0</div>
           <div class="sub-value" id="statLowStock">0 low stock</div>
         </div>
         <div class="stat-card">
           <div class="icon">&#x1f465;</div>
-          <div class="label">Customers</div>
+          <div class="label" data-i18n="nav.customers">Customers</div>
           <div class="value warning" id="statCustomers">0</div>
-          <div class="sub-value" id="statNewCustomers">Registered accounts</div>
+          <div class="sub-value" id="statNewCustomers" data-i18n="dashboard.registered">Registered accounts</div>
         </div>
       </div>
 
       <div class="dash-grid">
         <!-- Recent Orders -->
         <div class="table-wrap">
-          <div class="table-header"><h3>Recent Orders</h3></div>
-          <table><thead><tr><th>Order</th><th>Customer</th><th>Total</th><th>Status</th></tr></thead>
+          <div class="table-header"><h3 data-i18n="dashboard.recentOrders">Recent Orders</h3></div>
+          <table><thead><tr><th data-i18n="col.order">Order</th><th data-i18n="col.customer">Customer</th><th data-i18n="col.total">Total</th><th data-i18n="col.status">Status</th></tr></thead>
           <tbody id="recentOrders"><tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:30px">Loading...</td></tr></tbody></table>
         </div>
 
         <!-- Low Stock & Recent Customers -->
         <div>
           <div class="table-wrap" style="margin-bottom:20px">
-            <div class="table-header"><h3>Low Stock Alerts</h3></div>
+            <div class="table-header"><h3 data-i18n="dashboard.lowStock">Low Stock Alerts</h3></div>
             <ul class="alert-list" id="lowStockList">
               <li style="color:var(--text-muted);padding:20px;text-align:center">Loading...</li>
             </ul>
           </div>
           <div class="table-wrap">
-            <div class="table-header"><h3>New Customers</h3></div>
-            <table><thead><tr><th>Name</th><th>Email</th><th>Joined</th></tr></thead>
+            <div class="table-header"><h3 data-i18n="dashboard.newCustomers">New Customers</h3></div>
+            <table><thead><tr><th data-i18n="col.name">Name</th><th data-i18n="common.email">Email</th><th data-i18n="col.joined">Joined</th></tr></thead>
             <tbody id="recentCustomers"><tr><td colspan="3" style="text-align:center;color:var(--text-muted);padding:20px">Loading...</td></tr></tbody></table>
           </div>
         </div>
@@ -255,7 +272,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
 
       <!-- Order Status Breakdown -->
       <div class="table-wrap">
-        <div class="table-header"><h3>Order Status Breakdown</h3></div>
+        <div class="table-header"><h3 data-i18n="dashboard.statusBreakdown">Order Status Breakdown</h3></div>
         <div style="display:flex;gap:16px;padding:20px;flex-wrap:wrap" id="statusBreakdown">
           <span style="color:var(--text-muted)">Loading...</span>
         </div>
@@ -265,20 +282,20 @@ tr:hover td{background:rgba(255,255,255,.02)}
     <!-- ====== PRODUCTS ====== -->
     <div class="view" id="productsView">
       <div class="section-header">
-        <h2>Products</h2>
-        <button class="btn btn-primary" onclick="openProductForm()">+ Add Product</button>
+        <h2 data-i18n="nav.products">Products</h2>
+        <button class="btn btn-primary" onclick="openProductForm()" data-i18n="btn.addProduct">+ Add Product</button>
       </div>
       <div class="table-wrap">
-        <table><thead><tr><th></th><th>Product</th><th>Category</th><th>Price</th><th>Stock</th><th>Featured</th><th>Actions</th></tr></thead>
+        <table><thead><tr><th></th><th data-i18n="col.product">Product</th><th data-i18n="col.category">Category</th><th data-i18n="col.price">Price</th><th data-i18n="col.stock">Stock</th><th data-i18n="col.featured">Featured</th><th data-i18n="col.actions">Actions</th></tr></thead>
         <tbody id="productsTable"><tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:30px">Loading...</td></tr></tbody></table>
       </div>
     </div>
 
     <!-- ====== ORDERS ====== -->
     <div class="view" id="ordersView">
-      <div class="section-header"><h2>Orders</h2></div>
+      <div class="section-header"><h2 data-i18n="nav.orders">Orders</h2></div>
       <div class="table-wrap">
-        <table><thead><tr><th>Order #</th><th>Customer</th><th>Email</th><th>Total</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+        <table><thead><tr><th data-i18n="col.orderNum">Order #</th><th data-i18n="col.customer">Customer</th><th data-i18n="common.email">Email</th><th data-i18n="col.total">Total</th><th data-i18n="col.status">Status</th><th data-i18n="col.date">Date</th><th data-i18n="col.actions">Actions</th></tr></thead>
         <tbody id="ordersTable"><tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:30px">Loading...</td></tr></tbody></table>
       </div>
     </div>
@@ -286,69 +303,69 @@ tr:hover td{background:rgba(255,255,255,.02)}
     <!-- ====== CUSTOMERS ====== -->
     <div class="view" id="customersView">
       <div class="section-header">
-        <h2>Customers</h2>
-        <button class="btn btn-primary" onclick="openCustomerForm()">+ Add Customer</button>
+        <h2 data-i18n="nav.customers">Customers</h2>
+        <button class="btn btn-primary" onclick="openCustomerForm()" data-i18n="btn.addCustomer">+ Add Customer</button>
       </div>
       <div class="table-wrap">
-        <table><thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Location</th><th>Joined</th><th>Actions</th></tr></thead>
+        <table><thead><tr><th data-i18n="col.name">Name</th><th data-i18n="common.email">Email</th><th data-i18n="col.phone">Phone</th><th data-i18n="col.location">Location</th><th data-i18n="col.joined">Joined</th><th data-i18n="col.actions">Actions</th></tr></thead>
         <tbody id="customersTable"><tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:30px">Loading...</td></tr></tbody></table>
       </div>
     </div>
 
     <!-- ====== ACTIVITY LOG ====== -->
     <div class="view" id="logsView">
-      <div class="section-header"><h2>Activity Log</h2></div>
+      <div class="section-header"><h2 data-i18n="nav.logs">Activity Log</h2></div>
       <div class="log-filters" id="logFilters">
-        <button class="log-filter active" onclick="filterLogs(null)">All</button>
-        <button class="log-filter" onclick="filterLogs('auth')">Auth</button>
-        <button class="log-filter" onclick="filterLogs('order')">Orders</button>
-        <button class="log-filter" onclick="filterLogs('finance')">Finance</button>
-        <button class="log-filter" onclick="filterLogs('product')">Products</button>
-        <button class="log-filter" onclick="filterLogs('customer')">Customers</button>
-        <button class="log-filter" onclick="filterLogs('cart')">Cart</button>
-        <button class="log-filter" onclick="filterLogs('inventory')">Inventory</button>
-        <button class="log-filter" onclick="filterLogs('settings')">Settings</button>
+        <button class="log-filter active" onclick="filterLogs(null)" data-i18n="logs.all">All</button>
+        <button class="log-filter" onclick="filterLogs('auth')" data-i18n="logs.auth">Auth</button>
+        <button class="log-filter" onclick="filterLogs('order')" data-i18n="nav.orders">Orders</button>
+        <button class="log-filter" onclick="filterLogs('finance')" data-i18n="logs.finance">Finance</button>
+        <button class="log-filter" onclick="filterLogs('product')" data-i18n="nav.products">Products</button>
+        <button class="log-filter" onclick="filterLogs('customer')" data-i18n="nav.customers">Customers</button>
+        <button class="log-filter" onclick="filterLogs('cart')" data-i18n="logs.cart">Cart</button>
+        <button class="log-filter" onclick="filterLogs('inventory')" data-i18n="logs.inventory">Inventory</button>
+        <button class="log-filter" onclick="filterLogs('settings')" data-i18n="nav.settings">Settings</button>
       </div>
       <div class="table-wrap">
         <div id="logEntries" style="max-height:70vh;overflow-y:auto">
           <div style="text-align:center;color:var(--text-muted);padding:30px">Loading...</div>
         </div>
-        <button class="log-load-more" id="logLoadMore" onclick="loadMoreLogs()" style="display:none">Load More</button>
+        <button class="log-load-more" id="logLoadMore" onclick="loadMoreLogs()" style="display:none" data-i18n="logs.loadMore">Load More</button>
       </div>
     </div>
 
     <!-- ====== SETTINGS ====== -->
     <div class="view" id="settingsView">
-      <div class="section-header"><h2>Store Settings</h2></div>
+      <div class="section-header"><h2 data-i18n="settings.title">Store Settings</h2></div>
       <div class="panel">
-        <h3>General</h3>
+        <h3 data-i18n="settings.general">General</h3>
         <div class="form-grid">
-          <div class="field"><label>Store Name</label><input type="text" id="setStoreName"></div>
-          <div class="field"><label>Tagline</label><input type="text" id="setTagline"></div>
-          <div class="field"><label>Contact Email</label><input type="email" id="setEmail"></div>
-          <div class="field"><label>Phone</label><input type="text" id="setPhone"></div>
+          <div class="field"><label data-i18n="settings.storeName">Store Name</label><input type="text" id="setStoreName"></div>
+          <div class="field"><label data-i18n="settings.tagline">Tagline</label><input type="text" id="setTagline"></div>
+          <div class="field"><label data-i18n="settings.contactEmail">Contact Email</label><input type="email" id="setEmail"></div>
+          <div class="field"><label data-i18n="col.phone">Phone</label><input type="text" id="setPhone"></div>
         </div>
       </div>
       <div class="panel">
-        <h3>Shipping & Tax</h3>
+        <h3 data-i18n="settings.shippingTax">Shipping & Tax</h3>
         <div class="form-grid">
-          <div class="field"><label>Flat Rate Shipping ($)</label><input type="number" step="0.01" id="setShipping"></div>
-          <div class="field"><label>Free Shipping Threshold ($)</label><input type="number" step="0.01" id="setFreeShip"></div>
-          <div class="field"><label>Tax Rate (%)</label><input type="number" step="0.01" id="setTax"></div>
-          <div class="field"><label>Age Verification</label>
-            <select id="setAgeVerify"><option value="true">Enabled</option><option value="false">Disabled</option></select>
+          <div class="field"><label data-i18n="settings.flatShip">Flat Rate Shipping ($)</label><input type="number" step="0.01" id="setShipping"></div>
+          <div class="field"><label data-i18n="settings.freeShip">Free Shipping Threshold ($)</label><input type="number" step="0.01" id="setFreeShip"></div>
+          <div class="field"><label data-i18n="settings.taxRate">Tax Rate (%)</label><input type="number" step="0.01" id="setTax"></div>
+          <div class="field"><label data-i18n="settings.ageVerify">Age Verification</label>
+            <select id="setAgeVerify"><option value="true" data-i18n="settings.enabled">Enabled</option><option value="false" data-i18n="settings.disabled">Disabled</option></select>
           </div>
         </div>
       </div>
       <div class="panel">
-        <h3>Crypto Wallet Addresses</h3>
-        <p style="color:var(--text-dim);font-size:.82rem;margin-bottom:16px">These addresses are shown to customers at checkout when they select crypto payment. A QR code is generated automatically.</p>
+        <h3 data-i18n="settings.crypto">Crypto Wallet Addresses</h3>
+        <p style="color:var(--text-dim);font-size:.82rem;margin-bottom:16px" data-i18n="settings.cryptoNote">These addresses are shown to customers at checkout when they select crypto payment. A QR code is generated automatically.</p>
         <div class="form-grid">
-          <div class="field full"><label>Bitcoin (BTC) Wallet Address</label><input type="text" id="setWalletBtc" placeholder="bc1q..." style="font-family:monospace;font-size:.85rem"></div>
-          <div class="field full"><label>Monero (XMR) Wallet Address</label><input type="text" id="setWalletXmr" placeholder="4..." style="font-family:monospace;font-size:.85rem"></div>
+          <div class="field full"><label data-i18n="settings.btcWallet">Bitcoin (BTC) Wallet Address</label><input type="text" id="setWalletBtc" placeholder="bc1q..." style="font-family:monospace;font-size:.85rem"></div>
+          <div class="field full"><label data-i18n="settings.xmrWallet">Monero (XMR) Wallet Address</label><input type="text" id="setWalletXmr" placeholder="4..." style="font-family:monospace;font-size:.85rem"></div>
         </div>
       </div>
-      <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
+      <button class="btn btn-primary" onclick="saveSettings()" data-i18n="settings.save">Save Settings</button>
     </div>
   </div>
 </div>
@@ -356,30 +373,30 @@ tr:hover td{background:rgba(255,255,255,.02)}
 <!-- PRODUCT FORM MODAL -->
 <div class="modal-overlay" id="productModal">
   <div class="modal">
-    <h3 id="productFormTitle">Add Product</h3>
+    <h3 id="productFormTitle" data-i18n="btn.addProductTitle">Add Product</h3>
     <input type="hidden" id="prodEditId">
     <div class="form-grid">
-      <div class="field"><label>Name</label><input type="text" id="prodName"></div>
-      <div class="field"><label>Price ($)</label><input type="number" step="0.01" id="prodPrice"></div>
-      <div class="field full"><label>Description</label><textarea id="prodDesc" rows="3"></textarea></div>
-      <div class="field"><label>Category</label>
+      <div class="field"><label data-i18n="col.name">Name</label><input type="text" id="prodName"></div>
+      <div class="field"><label data-i18n="form.price">Price ($)</label><input type="number" step="0.01" id="prodPrice"></div>
+      <div class="field full"><label data-i18n="form.description">Description</label><textarea id="prodDesc" rows="3"></textarea></div>
+      <div class="field"><label data-i18n="col.category">Category</label>
         <select id="prodCategory"><option>Flower</option><option>Pre-Rolls</option><option>Edibles</option><option>Tinctures</option><option>Topicals</option><option>Concentrates</option><option>Accessories</option></select>
       </div>
-      <div class="field"><label>Strain Type</label>
+      <div class="field"><label data-i18n="form.strainType">Strain Type</label>
         <select id="prodStrain"><option value="">N/A</option><option>Indica</option><option>Sativa</option><option>Hybrid</option></select>
       </div>
-      <div class="field"><label>THC Content</label><input type="text" id="prodTHC" placeholder="<0.3%"></div>
-      <div class="field"><label>CBD Content</label><input type="text" id="prodCBD" placeholder="18%"></div>
-      <div class="field"><label>Weight/Size</label><input type="text" id="prodWeight" placeholder="3.5g"></div>
-      <div class="field"><label>Stock</label><input type="number" id="prodStock" value="0"></div>
-      <div class="field"><label>Image URL</label><input type="text" id="prodImage" placeholder="https://..."></div>
-      <div class="field"><label>Featured</label>
-        <select id="prodFeatured"><option value="false">No</option><option value="true">Yes</option></select>
+      <div class="field"><label data-i18n="form.thc">THC Content</label><input type="text" id="prodTHC" placeholder="<0.3%"></div>
+      <div class="field"><label data-i18n="form.cbd">CBD Content</label><input type="text" id="prodCBD" placeholder="18%"></div>
+      <div class="field"><label data-i18n="form.weight">Weight/Size</label><input type="text" id="prodWeight" placeholder="3.5g"></div>
+      <div class="field"><label data-i18n="col.stock">Stock</label><input type="number" id="prodStock" value="0"></div>
+      <div class="field"><label data-i18n="form.imageUrl">Image URL</label><input type="text" id="prodImage" placeholder="https://..."></div>
+      <div class="field"><label data-i18n="col.featured">Featured</label>
+        <select id="prodFeatured"><option value="false" data-i18n="form.no">No</option><option value="true" data-i18n="form.yes">Yes</option></select>
       </div>
     </div>
     <div style="display:flex;gap:10px;margin-top:16px">
-      <button class="btn btn-primary" onclick="saveProduct()">Save Product</button>
-      <button class="btn btn-secondary" onclick="closeModal('productModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveProduct()" data-i18n="btn.saveProduct">Save Product</button>
+      <button class="btn btn-secondary" onclick="closeModal('productModal')" data-i18n="btn.cancel">Cancel</button>
     </div>
   </div>
 </div>
@@ -387,23 +404,23 @@ tr:hover td{background:rgba(255,255,255,.02)}
 <!-- CUSTOMER FORM MODAL -->
 <div class="modal-overlay" id="customerModal">
   <div class="modal">
-    <h3 id="customerFormTitle">Add Customer</h3>
+    <h3 id="customerFormTitle" data-i18n="btn.addCustomerTitle">Add Customer</h3>
     <input type="hidden" id="custEditId">
     <div class="form-grid">
-      <div class="field"><label>Name</label><input type="text" id="custName"></div>
-      <div class="field"><label>Username</label><input type="text" id="custUsername"></div>
-      <div class="field"><label>Email</label><input type="email" id="custEmail"></div>
-      <div class="field"><label>Phone</label><input type="text" id="custPhone"></div>
-      <div class="field"><label>Password</label><input type="password" id="custPassword" placeholder="Leave blank to keep current"></div>
-      <div class="field"><label>Address</label><input type="text" id="custAddress"></div>
-      <div class="field"><label>City</label><input type="text" id="custCity"></div>
-      <div class="field"><label>State</label><input type="text" id="custState"></div>
-      <div class="field"><label>Zip</label><input type="text" id="custZip"></div>
-      <div class="field full"><label>Notes</label><textarea id="custNotes" rows="2"></textarea></div>
+      <div class="field"><label data-i18n="col.name">Name</label><input type="text" id="custName"></div>
+      <div class="field"><label data-i18n="form.username">Username</label><input type="text" id="custUsername"></div>
+      <div class="field"><label data-i18n="common.email">Email</label><input type="email" id="custEmail"></div>
+      <div class="field"><label data-i18n="col.phone">Phone</label><input type="text" id="custPhone"></div>
+      <div class="field"><label data-i18n="common.password">Password</label><input type="password" id="custPassword" placeholder="Leave blank to keep current" data-i18n-placeholder="form.leaveBlank"></div>
+      <div class="field"><label data-i18n="form.address">Address</label><input type="text" id="custAddress"></div>
+      <div class="field"><label data-i18n="form.city">City</label><input type="text" id="custCity"></div>
+      <div class="field"><label data-i18n="form.state">State</label><input type="text" id="custState"></div>
+      <div class="field"><label data-i18n="form.zip">Zip</label><input type="text" id="custZip"></div>
+      <div class="field full"><label data-i18n="form.notes">Notes</label><textarea id="custNotes" rows="2"></textarea></div>
     </div>
     <div style="display:flex;gap:10px;margin-top:16px">
-      <button class="btn btn-primary" onclick="saveCustomer()">Save Customer</button>
-      <button class="btn btn-secondary" onclick="closeModal('customerModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveCustomer()" data-i18n="btn.saveCustomer">Save Customer</button>
+      <button class="btn btn-secondary" onclick="closeModal('customerModal')" data-i18n="btn.cancel">Cancel</button>
     </div>
   </div>
 </div>
@@ -414,11 +431,89 @@ tr:hover td{background:rgba(255,255,255,.02)}
 <footer style="text-align:center;padding:20px;color:#58586a;font-size:.72rem">air-v.1.3.0</footer>
 
 <script>
-let adminToken = localStorage.getItem('aw_admin_token');
-let adminUser = null;
-let allProducts = [];
-let allOrders = [];
-let allCustomers = [];
+// ============ STATE (declared first to avoid TDZ) ============
+var adminToken = localStorage.getItem('aw_admin_token');
+var adminUser = null;
+var allProducts = [];
+var allOrders = [];
+var allCustomers = [];
+
+// ============ I18N ============
+const I18N = {
+  en: {
+    'login.title':'Admin Dashboard','login.subtitle':'Sign in to manage your store','login.signIn':'Sign In','login.accessDenied':'Access denied. Admin accounts only.','login.fillFields':'Please fill in all fields',
+    'common.email':'Email','common.password':'Password','common.welcome':'Welcome, {name}','common.admin':'Admin','common.na':'N/A',
+    'nav.dashboard':'Dashboard','nav.products':'Products','nav.orders':'Orders','nav.customers':'Customers','nav.logs':'Activity Log','nav.settings':'Settings','nav.backToStore':'← Back to Store','nav.signOut':'Sign Out',
+    'dashboard.title':'Dashboard','dashboard.revenue':'Total Revenue','dashboard.allTime':'All time','dashboard.registered':'Registered accounts','dashboard.recentOrders':'Recent Orders','dashboard.lowStock':'Low Stock Alerts','dashboard.newCustomers':'New Customers','dashboard.statusBreakdown':'Order Status Breakdown',
+    'dashboard.noOrders':'No orders yet','dashboard.noCustomers':'No customers yet','dashboard.allStocked':'All products well stocked','dashboard.pendingSuffix':'{n} pending','dashboard.lowSuffix':'{n} low stock','dashboard.leftSuffix':'{n} left',
+    'col.order':'Order','col.orderNum':'Order #','col.customer':'Customer','col.total':'Total','col.status':'Status','col.name':'Name','col.joined':'Joined','col.product':'Product','col.category':'Category','col.price':'Price','col.stock':'Stock','col.featured':'Featured','col.actions':'Actions','col.date':'Date','col.phone':'Phone','col.location':'Location',
+    'status.pending':'Pending','status.shipped':'Shipped','status.delivered':'Delivered','status.cancelled':'Cancelled',
+    'btn.addProduct':'+ Add Product','btn.addProductTitle':'Add Product','btn.editProductTitle':'Edit Product','btn.saveProduct':'Save Product',
+    'btn.addCustomer':'+ Add Customer','btn.addCustomerTitle':'Add Customer','btn.editCustomerTitle':'Edit Customer','btn.saveCustomer':'Save Customer',
+    'btn.edit':'Edit','btn.del':'Del','btn.cancel':'Cancel','btn.saveSettings':'Save Settings',
+    'form.price':'Price ($)','form.description':'Description','form.strainType':'Strain Type','form.thc':'THC Content','form.cbd':'CBD Content','form.weight':'Weight/Size','form.imageUrl':'Image URL','form.yes':'Yes','form.no':'No',
+    'form.username':'Username','form.address':'Address','form.city':'City','form.state':'State','form.zip':'Zip','form.notes':'Notes','form.leaveBlank':'Leave blank to keep current',
+    'settings.title':'Store Settings','settings.general':'General','settings.storeName':'Store Name','settings.tagline':'Tagline','settings.contactEmail':'Contact Email',
+    'settings.shippingTax':'Shipping & Tax','settings.flatShip':'Flat Rate Shipping ($)','settings.freeShip':'Free Shipping Threshold ($)','settings.taxRate':'Tax Rate (%)','settings.ageVerify':'Age Verification','settings.enabled':'Enabled','settings.disabled':'Disabled',
+    'settings.crypto':'Crypto Wallet Addresses','settings.cryptoNote':'These addresses are shown to customers at checkout when they select crypto payment. A QR code is generated automatically.','settings.btcWallet':'Bitcoin (BTC) Wallet Address','settings.xmrWallet':'Monero (XMR) Wallet Address','settings.save':'Save Settings',
+    'logs.all':'All','logs.auth':'Auth','logs.finance':'Finance','logs.cart':'Cart','logs.inventory':'Inventory','logs.loadMore':'Load More','logs.loading':'Loading...','logs.empty':'No activity yet',
+    'toast.saved':'Saved','toast.deleted':'Deleted','toast.error':'Something went wrong','toast.confirmDelete':'Are you sure you want to delete this?','toast.settingsSaved':'Settings saved'
+  },
+  es: {
+    'login.title':'Panel de Administración','login.subtitle':'Inicia sesión para administrar tu tienda','login.signIn':'Iniciar Sesión','login.accessDenied':'Acceso denegado. Solo cuentas de administrador.','login.fillFields':'Por favor completa todos los campos',
+    'common.email':'Correo','common.password':'Contraseña','common.welcome':'Bienvenido, {name}','common.admin':'Admin','common.na':'N/D',
+    'nav.dashboard':'Panel','nav.products':'Productos','nav.orders':'Pedidos','nav.customers':'Clientes','nav.logs':'Registro de Actividad','nav.settings':'Ajustes','nav.backToStore':'← Volver a la Tienda','nav.signOut':'Cerrar Sesión',
+    'dashboard.title':'Panel','dashboard.revenue':'Ingresos Totales','dashboard.allTime':'Histórico','dashboard.registered':'Cuentas registradas','dashboard.recentOrders':'Pedidos Recientes','dashboard.lowStock':'Alertas de Stock Bajo','dashboard.newCustomers':'Clientes Nuevos','dashboard.statusBreakdown':'Desglose de Estado de Pedidos',
+    'dashboard.noOrders':'Aún no hay pedidos','dashboard.noCustomers':'Aún no hay clientes','dashboard.allStocked':'Todos los productos con buen stock','dashboard.pendingSuffix':'{n} pendientes','dashboard.lowSuffix':'{n} stock bajo','dashboard.leftSuffix':'quedan {n}',
+    'col.order':'Pedido','col.orderNum':'Pedido #','col.customer':'Cliente','col.total':'Total','col.status':'Estado','col.name':'Nombre','col.joined':'Registro','col.product':'Producto','col.category':'Categoría','col.price':'Precio','col.stock':'Stock','col.featured':'Destacado','col.actions':'Acciones','col.date':'Fecha','col.phone':'Teléfono','col.location':'Ubicación',
+    'status.pending':'Pendiente','status.shipped':'Enviado','status.delivered':'Entregado','status.cancelled':'Cancelado',
+    'btn.addProduct':'+ Añadir Producto','btn.addProductTitle':'Añadir Producto','btn.editProductTitle':'Editar Producto','btn.saveProduct':'Guardar Producto',
+    'btn.addCustomer':'+ Añadir Cliente','btn.addCustomerTitle':'Añadir Cliente','btn.editCustomerTitle':'Editar Cliente','btn.saveCustomer':'Guardar Cliente',
+    'btn.edit':'Editar','btn.del':'Elim','btn.cancel':'Cancelar','btn.saveSettings':'Guardar Ajustes',
+    'form.price':'Precio ($)','form.description':'Descripción','form.strainType':'Tipo de Cepa','form.thc':'Contenido de THC','form.cbd':'Contenido de CBD','form.weight':'Peso/Tamaño','form.imageUrl':'URL de Imagen','form.yes':'Sí','form.no':'No',
+    'form.username':'Usuario','form.address':'Dirección','form.city':'Ciudad','form.state':'Estado','form.zip':'CP','form.notes':'Notas','form.leaveBlank':'Deja en blanco para mantener la actual',
+    'settings.title':'Ajustes de la Tienda','settings.general':'General','settings.storeName':'Nombre de la Tienda','settings.tagline':'Lema','settings.contactEmail':'Correo de Contacto',
+    'settings.shippingTax':'Envío e Impuestos','settings.flatShip':'Tarifa Plana de Envío ($)','settings.freeShip':'Umbral de Envío Gratis ($)','settings.taxRate':'Tasa de Impuesto (%)','settings.ageVerify':'Verificación de Edad','settings.enabled':'Activada','settings.disabled':'Desactivada',
+    'settings.crypto':'Direcciones de Billetera Cripto','settings.cryptoNote':'Estas direcciones se muestran a los clientes al pagar cuando seleccionan pago con cripto. Se genera un código QR automáticamente.','settings.btcWallet':'Dirección de Billetera Bitcoin (BTC)','settings.xmrWallet':'Dirección de Billetera Monero (XMR)','settings.save':'Guardar Ajustes',
+    'logs.all':'Todos','logs.auth':'Auth','logs.finance':'Finanzas','logs.cart':'Carrito','logs.inventory':'Inventario','logs.loadMore':'Cargar Más','logs.loading':'Cargando...','logs.empty':'Aún no hay actividad',
+    'toast.saved':'Guardado','toast.deleted':'Eliminado','toast.error':'Algo salió mal','toast.confirmDelete':'¿Seguro que quieres eliminar esto?','toast.settingsSaved':'Ajustes guardados'
+  }
+};
+let currentLang = localStorage.getItem('aw_lang') || 'en';
+function t(key, vars) {
+  let s = (I18N[currentLang] && I18N[currentLang][key]) || (I18N.en[key] || key);
+  if (vars) for (const k in vars) s = s.replace('{' + k + '}', vars[k]);
+  return s;
+}
+function applyLanguage() {
+  document.documentElement.lang = currentLang;
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.getAttribute('data-i18n')); });
+  document.querySelectorAll('[data-i18n-html]').forEach(el => { el.innerHTML = t(el.getAttribute('data-i18n-html')); });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => { el.placeholder = t(el.getAttribute('data-i18n-placeholder')); });
+  ['langEn','langEs','loginLangEn','loginLangEs'].forEach(id => { const el = document.getElementById(id); if (el) el.classList.toggle('active', (id.endsWith('En') && currentLang === 'en') || (id.endsWith('Es') && currentLang === 'es')); });
+  // Refresh welcome message
+  const wm = document.getElementById('welcomeMsg');
+  if (wm && adminUser) wm.textContent = t('common.welcome', { name: adminUser.name || t('common.admin') });
+  // Re-render dynamic content if loaded
+  try { if (typeof allProducts !== 'undefined' && allProducts.length) renderProductsTable(); } catch {}
+  try { if (typeof allOrders !== 'undefined' && allOrders.length) renderOrdersTable(); } catch {}
+  try { if (typeof allCustomers !== 'undefined' && allCustomers.length) renderCustomersTable(); } catch {}
+  try { refreshDashboardTexts(); } catch {}
+}
+async function setLanguage(lang) {
+  if (lang !== 'en' && lang !== 'es') return;
+  currentLang = lang;
+  localStorage.setItem('aw_lang', lang);
+  applyLanguage();
+  if (adminToken) {
+    try { await api('/api/auth?action=language', { method: 'POST', body: JSON.stringify({ language: lang }) }); } catch {}
+  }
+}
+function refreshDashboardTexts() {
+  const sc = window._lastStats || {};
+  if (sc.pendingOrders !== undefined) document.getElementById('statPending').textContent = t('dashboard.pendingSuffix', { n: sc.pendingOrders });
+  if (sc.lowStock) document.getElementById('statLowStock').textContent = t('dashboard.lowSuffix', { n: sc.lowStock.length });
+}
 
 async function api(path, options = {}) {
   const opts = { headers: { 'Content-Type': 'application/json' }, ...options };
@@ -431,12 +526,18 @@ async function api(path, options = {}) {
 
 // Init
 document.addEventListener('DOMContentLoaded', async () => {
+  applyLanguage();
   try { await fetch('/api/db-init'); } catch {}
   if (adminToken) {
     try {
       const data = await api('/api/auth?action=me');
       if (data.user && data.user.role === 'admin') {
         adminUser = data.user;
+        if (adminUser.language && adminUser.language !== currentLang) {
+          currentLang = adminUser.language;
+          localStorage.setItem('aw_lang', currentLang);
+          applyLanguage();
+        }
         showAdmin();
         return;
       }
@@ -451,13 +552,18 @@ async function doLogin() {
   const password = document.getElementById('loginPassword').value;
   const errEl = document.getElementById('loginError');
   errEl.style.display = 'none';
-  if (!email || !password) { errEl.textContent = 'Please fill in all fields'; errEl.style.display = 'block'; return; }
+  if (!email || !password) { errEl.textContent = t('login.fillFields'); errEl.style.display = 'block'; return; }
   try {
     const data = await api('/api/auth?action=login', { method: 'POST', body: JSON.stringify({ email, password }) });
-    if (data.user.role !== 'admin') { errEl.textContent = 'Access denied. Admin accounts only.'; errEl.style.display = 'block'; return; }
+    if (data.user.role !== 'admin') { errEl.textContent = t('login.accessDenied'); errEl.style.display = 'block'; return; }
     adminToken = data.token;
     localStorage.setItem('aw_admin_token', data.token);
     adminUser = data.user;
+    if (adminUser.language && adminUser.language !== currentLang) {
+      currentLang = adminUser.language;
+      localStorage.setItem('aw_lang', currentLang);
+      applyLanguage();
+    }
     showAdmin();
   } catch (err) { errEl.textContent = err.message; errEl.style.display = 'block'; }
 }
@@ -465,7 +571,7 @@ async function doLogin() {
 function showAdmin() {
   document.getElementById('loginPage').style.display = 'none';
   document.getElementById('adminLayout').style.display = 'block';
-  document.getElementById('welcomeMsg').textContent = 'Welcome, ' + (adminUser?.name || 'Admin');
+  document.getElementById('welcomeMsg').textContent = t('common.welcome', { name: adminUser?.name || t('common.admin') });
   loadDashboard();
 }
 
@@ -494,55 +600,57 @@ function showSection(name) {
 async function loadDashboard() {
   try {
     const stats = await api('/api/stats');
+    window._lastStats = stats;
+    const locale = currentLang === 'es' ? 'es-ES' : 'en-US';
     document.getElementById('statRevenue').textContent = '$' + stats.revenue.toFixed(2);
     document.getElementById('statOrders').textContent = stats.orders;
-    document.getElementById('statPending').textContent = stats.pendingOrders + ' pending';
+    document.getElementById('statPending').textContent = t('dashboard.pendingSuffix', { n: stats.pendingOrders });
     document.getElementById('statProducts').textContent = stats.products;
-    document.getElementById('statLowStock').textContent = stats.lowStock.length + ' low stock';
+    document.getElementById('statLowStock').textContent = t('dashboard.lowSuffix', { n: stats.lowStock.length });
     document.getElementById('statCustomers').textContent = stats.customers;
 
     // Recent orders
     const recent = stats.recentOrders || [];
     document.getElementById('recentOrders').innerHTML = recent.length === 0
-      ? '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:30px">No orders yet</td></tr>'
+      ? `<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:30px">${esc(t('dashboard.noOrders'))}</td></tr>`
       : recent.map(o => `<tr>
           <td style="font-weight:600">${esc(o.order_number || o.id)}</td>
-          <td>${esc(o.customer_name || 'N/A')}</td>
+          <td>${esc(o.customer_name || t('common.na'))}</td>
           <td style="color:var(--green);font-weight:600">$${parseFloat(o.total).toFixed(2)}</td>
-          <td><span class="status-badge status-${o.status}">${o.status}</span></td>
+          <td><span class="status-badge status-${o.status}">${esc(t('status.' + o.status) === 'status.' + o.status ? o.status : t('status.' + o.status))}</span></td>
         </tr>`).join('');
 
     // Low stock
     const low = stats.lowStock || [];
     document.getElementById('lowStockList').innerHTML = low.length === 0
-      ? '<li style="color:var(--text-muted);padding:20px;text-align:center">All products well stocked</li>'
+      ? `<li style="color:var(--text-muted);padding:20px;text-align:center">${esc(t('dashboard.allStocked'))}</li>`
       : low.map(p => `<li>
           <span>${esc(p.name)}</span>
-          <span class="${p.stock <= 3 ? 'stock-crit' : 'stock-warn'}">${p.stock} left</span>
+          <span class="${p.stock <= 3 ? 'stock-crit' : 'stock-warn'}">${esc(t('dashboard.leftSuffix', { n: p.stock }))}</span>
         </li>`).join('');
 
     // Recent customers
     const recentC = stats.recentCustomers || [];
     document.getElementById('recentCustomers').innerHTML = recentC.length === 0
-      ? '<tr><td colspan="3" style="text-align:center;color:var(--text-muted);padding:20px">No customers yet</td></tr>'
+      ? `<tr><td colspan="3" style="text-align:center;color:var(--text-muted);padding:20px">${esc(t('dashboard.noCustomers'))}</td></tr>`
       : recentC.map(c => `<tr>
           <td>${esc(c.name)}</td>
           <td style="color:var(--text-dim)">${esc(c.email)}</td>
-          <td style="color:var(--text-dim);font-size:.8rem">${new Date(c.created_at).toLocaleDateString()}</td>
+          <td style="color:var(--text-dim);font-size:.8rem">${new Date(c.created_at).toLocaleDateString(locale)}</td>
         </tr>`).join('');
 
     // Status breakdown
     const sc = stats.statusCounts || {};
     const statuses = [
-      { key: 'pending', label: 'Pending', cls: 'status-pending' },
-      { key: 'shipped', label: 'Shipped', cls: 'status-shipped' },
-      { key: 'delivered', label: 'Delivered', cls: 'status-delivered' },
-      { key: 'cancelled', label: 'Cancelled', cls: 'status-cancelled' }
+      { key: 'pending', cls: 'status-pending' },
+      { key: 'shipped', cls: 'status-shipped' },
+      { key: 'delivered', cls: 'status-delivered' },
+      { key: 'cancelled', cls: 'status-cancelled' }
     ];
     document.getElementById('statusBreakdown').innerHTML = statuses.map(s =>
       `<div style="text-align:center;min-width:100px">
         <div style="font-family:'Archivo Black',sans-serif;font-size:1.5rem;margin-bottom:4px">${sc[s.key] || 0}</div>
-        <span class="status-badge ${s.cls}">${s.label}</span>
+        <span class="status-badge ${s.cls}">${esc(t('status.' + s.key))}</span>
       </div>`
     ).join('');
 
@@ -553,25 +661,29 @@ async function loadDashboard() {
 async function loadProducts() {
   try {
     allProducts = await api('/api/products');
-    document.getElementById('productsTable').innerHTML = allProducts.length === 0
-      ? '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:30px">No products</td></tr>'
-      : allProducts.map(p => `<tr>
-          <td><div style="width:40px;height:40px;border-radius:var(--radius-sm);overflow:hidden;background:var(--surface2)">${p.image_url ? `<img src="${p.image_url}" style="width:100%;height:100%;object-fit:cover">` : ''}</div></td>
-          <td><strong>${esc(p.name)}</strong><br><span style="font-size:.75rem;color:var(--text-muted)">${esc(p.weight)}</span></td>
-          <td><span class="status-badge status-customer">${esc(p.category)}</span></td>
-          <td style="color:var(--green);font-weight:600">$${parseFloat(p.price).toFixed(2)}</td>
-          <td><span style="color:${p.stock < 10 ? 'var(--danger)' : p.stock < 20 ? 'var(--warning)' : 'var(--text)'};font-weight:${p.stock < 20 ? '600' : '400'}">${p.stock}</span></td>
-          <td>${p.featured ? '<span style="color:var(--warning)">&#11088;</span>' : '<span style="color:var(--text-muted)">&#8212;</span>'}</td>
-          <td>
-            <button class="btn btn-secondary btn-sm" onclick="editProduct(${p.id})">Edit</button>
-            <button class="btn btn-danger btn-sm" onclick="deleteProduct(${p.id})">Del</button>
-          </td>
-        </tr>`).join('');
+    renderProductsTable();
   } catch (err) { console.error(err); }
 }
 
+function renderProductsTable() {
+  document.getElementById('productsTable').innerHTML = allProducts.length === 0
+    ? `<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:30px">${esc(t('dashboard.noOrders') && '—')}</td></tr>`
+    : allProducts.map(p => `<tr>
+        <td><div style="width:40px;height:40px;border-radius:var(--radius-sm);overflow:hidden;background:var(--surface2)">${p.image_url ? `<img src="${p.image_url}" style="width:100%;height:100%;object-fit:cover">` : ''}</div></td>
+        <td><strong>${esc(p.name)}</strong><br><span style="font-size:.75rem;color:var(--text-muted)">${esc(p.weight)}</span></td>
+        <td><span class="status-badge status-customer">${esc(p.category)}</span></td>
+        <td style="color:var(--green);font-weight:600">$${parseFloat(p.price).toFixed(2)}</td>
+        <td><span style="color:${p.stock < 10 ? 'var(--danger)' : p.stock < 20 ? 'var(--warning)' : 'var(--text)'};font-weight:${p.stock < 20 ? '600' : '400'}">${p.stock}</span></td>
+        <td>${p.featured ? '<span style="color:var(--warning)">&#11088;</span>' : '<span style="color:var(--text-muted)">&#8212;</span>'}</td>
+        <td>
+          <button class="btn btn-secondary btn-sm" onclick="editProduct(${p.id})">${esc(t('btn.edit'))}</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteProduct(${p.id})">${esc(t('btn.del'))}</button>
+        </td>
+      </tr>`).join('');
+}
+
 function openProductForm(product = null) {
-  document.getElementById('productFormTitle').textContent = product ? 'Edit Product' : 'Add Product';
+  document.getElementById('productFormTitle').textContent = product ? t('btn.editProductTitle') : t('btn.addProductTitle');
   document.getElementById('prodEditId').value = product?.id || '';
   document.getElementById('prodName').value = product?.name || '';
   document.getElementById('prodPrice').value = product?.price || '';
@@ -604,83 +716,93 @@ async function saveProduct() {
     image_url: document.getElementById('prodImage').value.trim(),
     featured: document.getElementById('prodFeatured').value === 'true'
   };
-  if (!body.name || !body.price) { toast('Name and price are required', true); return; }
+  if (!body.name || !body.price) { toast(t('toast.error'), true); return; }
   try {
     if (id) await api('/api/products?id=' + id, { method: 'PUT', body: JSON.stringify(body) });
     else await api('/api/products', { method: 'POST', body: JSON.stringify(body) });
     closeModal('productModal');
     loadProducts();
-    toast('Product saved!');
-  } catch (err) { toast('Error: ' + err.message, true); }
+    toast(t('toast.saved'));
+  } catch (err) { toast(t('toast.error') + ': ' + err.message, true); }
 }
 
 async function deleteProduct(id) {
-  if (!confirm('Delete this product?')) return;
-  try { await api('/api/products?id=' + id, { method: 'DELETE' }); loadProducts(); toast('Product deleted'); }
-  catch (err) { toast('Error: ' + err.message, true); }
+  if (!confirm(t('toast.confirmDelete'))) return;
+  try { await api('/api/products?id=' + id, { method: 'DELETE' }); loadProducts(); toast(t('toast.deleted')); }
+  catch (err) { toast(t('toast.error') + ': ' + err.message, true); }
 }
 
 // =============== ORDERS ===============
 async function loadOrders() {
   try {
     allOrders = await api('/api/orders?all=true');
-    document.getElementById('ordersTable').innerHTML = allOrders.length === 0
-      ? '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:30px">No orders</td></tr>'
-      : allOrders.map(o => `<tr>
-          <td style="font-weight:600">${esc(o.order_number || o.id)}</td>
-          <td>${esc(o.customer_name || 'N/A')}</td>
-          <td style="color:var(--text-dim)">${esc(o.customer_email || '')}</td>
-          <td style="color:var(--green);font-weight:600">$${parseFloat(o.total).toFixed(2)}</td>
-          <td><span class="status-badge status-${o.status}">${o.status}</span></td>
-          <td style="color:var(--text-dim)">${new Date(o.created_at).toLocaleDateString()}</td>
-          <td>
-            <select onchange="updateOrderStatus('${o.id}', this.value)" style="padding:6px 10px;font-size:.78rem;width:auto;background:var(--surface2);border:1px solid var(--surface3);color:var(--text);border-radius:var(--radius-sm)">
-              <option ${o.status==='pending'?'selected':''} value="pending">Pending</option>
-              <option ${o.status==='shipped'?'selected':''} value="shipped">Shipped</option>
-              <option ${o.status==='delivered'?'selected':''} value="delivered">Delivered</option>
-              <option ${o.status==='cancelled'?'selected':''} value="cancelled">Cancelled</option>
-            </select>
-            <button class="btn btn-danger btn-sm" style="margin-left:4px" onclick="deleteOrder('${o.id}')">Del</button>
-          </td>
-        </tr>`).join('');
+    renderOrdersTable();
   } catch (err) { console.error(err); }
 }
 
+function renderOrdersTable() {
+  const locale = currentLang === 'es' ? 'es-ES' : 'en-US';
+  document.getElementById('ordersTable').innerHTML = allOrders.length === 0
+    ? `<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:30px">${esc(t('dashboard.noOrders'))}</td></tr>`
+    : allOrders.map(o => `<tr>
+        <td style="font-weight:600">${esc(o.order_number || o.id)}</td>
+        <td>${esc(o.customer_name || t('common.na'))}</td>
+        <td style="color:var(--text-dim)">${esc(o.customer_email || '')}</td>
+        <td style="color:var(--green);font-weight:600">$${parseFloat(o.total).toFixed(2)}</td>
+        <td><span class="status-badge status-${o.status}">${esc(t('status.' + o.status))}</span></td>
+        <td style="color:var(--text-dim)">${new Date(o.created_at).toLocaleDateString(locale)}</td>
+        <td>
+          <select onchange="updateOrderStatus('${o.id}', this.value)" style="padding:6px 10px;font-size:.78rem;width:auto;background:var(--surface2);border:1px solid var(--surface3);color:var(--text);border-radius:var(--radius-sm)">
+            <option ${o.status==='pending'?'selected':''} value="pending">${esc(t('status.pending'))}</option>
+            <option ${o.status==='shipped'?'selected':''} value="shipped">${esc(t('status.shipped'))}</option>
+            <option ${o.status==='delivered'?'selected':''} value="delivered">${esc(t('status.delivered'))}</option>
+            <option ${o.status==='cancelled'?'selected':''} value="cancelled">${esc(t('status.cancelled'))}</option>
+          </select>
+          <button class="btn btn-danger btn-sm" style="margin-left:4px" onclick="deleteOrder('${o.id}')">${esc(t('btn.del'))}</button>
+        </td>
+      </tr>`).join('');
+}
+
 async function updateOrderStatus(id, status) {
-  try { await api('/api/orders?id=' + id, { method: 'PUT', body: JSON.stringify({ status }) }); toast('Order updated'); }
-  catch (err) { toast('Error: ' + err.message, true); }
+  try { await api('/api/orders?id=' + id, { method: 'PUT', body: JSON.stringify({ status }) }); toast(t('toast.saved')); }
+  catch (err) { toast(t('toast.error') + ': ' + err.message, true); }
 }
 
 async function deleteOrder(id) {
-  if (!confirm('Delete this order? This cannot be undone.')) return;
-  try { await api('/api/orders?id=' + id, { method: 'DELETE' }); loadOrders(); toast('Order deleted'); }
-  catch (err) { toast('Error: ' + err.message, true); }
+  if (!confirm(t('toast.confirmDelete'))) return;
+  try { await api('/api/orders?id=' + id, { method: 'DELETE' }); loadOrders(); toast(t('toast.deleted')); }
+  catch (err) { toast(t('toast.error') + ': ' + err.message, true); }
 }
 
 // =============== CUSTOMERS ===============
 async function loadCustomers() {
   try {
     allCustomers = await api('/api/customers');
-    document.getElementById('customersTable').innerHTML = allCustomers.length === 0
-      ? '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:30px">No customers</td></tr>'
-      : allCustomers.map(c => `<tr>
-          <td><strong>${esc(c.name || c.username)}</strong><br><span style="font-size:.75rem;color:var(--text-muted)">@${esc(c.username)}</span></td>
-          <td style="color:var(--text-dim)">${esc(c.email)}</td>
-          <td>${esc(c.phone || '—')}</td>
-          <td style="color:var(--text-dim);font-size:.82rem">${[c.city, c.state].filter(Boolean).join(', ') || '—'}</td>
-          <td style="color:var(--text-dim);font-size:.82rem">${new Date(c.created_at).toLocaleDateString()}</td>
-          <td>
-            <button class="btn btn-secondary btn-sm" onclick="editCustomer('${c.id}')">Edit</button>
-            <button class="btn btn-danger btn-sm" onclick="deleteCustomer('${c.id}')">Del</button>
-          </td>
-        </tr>`).join('');
+    renderCustomersTable();
   } catch (err) {
-    document.getElementById('customersTable').innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:30px">Error loading customers</td></tr>';
+    document.getElementById('customersTable').innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:30px">${esc(t('toast.error'))}</td></tr>`;
   }
 }
 
+function renderCustomersTable() {
+  const locale = currentLang === 'es' ? 'es-ES' : 'en-US';
+  document.getElementById('customersTable').innerHTML = allCustomers.length === 0
+    ? `<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:30px">${esc(t('dashboard.noCustomers'))}</td></tr>`
+    : allCustomers.map(c => `<tr>
+        <td><strong>${esc(c.name || c.username)}</strong><br><span style="font-size:.75rem;color:var(--text-muted)">@${esc(c.username)}</span></td>
+        <td style="color:var(--text-dim)">${esc(c.email)}</td>
+        <td>${esc(c.phone || '—')}</td>
+        <td style="color:var(--text-dim);font-size:.82rem">${[c.city, c.state].filter(Boolean).join(', ') || '—'}</td>
+        <td style="color:var(--text-dim);font-size:.82rem">${new Date(c.created_at).toLocaleDateString(locale)}</td>
+        <td>
+          <button class="btn btn-secondary btn-sm" onclick="editCustomer('${c.id}')">${esc(t('btn.edit'))}</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteCustomer('${c.id}')">${esc(t('btn.del'))}</button>
+        </td>
+      </tr>`).join('');
+}
+
 function openCustomerForm(customer = null) {
-  document.getElementById('customerFormTitle').textContent = customer ? 'Edit Customer' : 'Add Customer';
+  document.getElementById('customerFormTitle').textContent = customer ? t('btn.editCustomerTitle') : t('btn.addCustomerTitle');
   document.getElementById('custEditId').value = customer?.id || '';
   document.getElementById('custName').value = customer?.name || '';
   document.getElementById('custUsername').value = customer?.username || '';
@@ -712,20 +834,20 @@ async function saveCustomer() {
   };
   const pw = document.getElementById('custPassword').value;
   if (pw) body.password = pw;
-  if (!body.name || !body.email) { toast('Name and email are required', true); return; }
+  if (!body.name || !body.email) { toast(t('toast.error'), true); return; }
   try {
     if (id) await api('/api/customers?id=' + id, { method: 'PUT', body: JSON.stringify(body) });
     else await api('/api/customers', { method: 'POST', body: JSON.stringify(body) });
     closeModal('customerModal');
     loadCustomers();
-    toast('Customer saved!');
-  } catch (err) { toast('Error: ' + err.message, true); }
+    toast(t('toast.saved'));
+  } catch (err) { toast(t('toast.error') + ': ' + err.message, true); }
 }
 
 async function deleteCustomer(id) {
-  if (!confirm('Delete this customer and all their orders? This cannot be undone.')) return;
-  try { await api('/api/customers?id=' + id, { method: 'DELETE' }); loadCustomers(); toast('Customer deleted'); }
-  catch (err) { toast('Error: ' + err.message, true); }
+  if (!confirm(t('toast.confirmDelete'))) return;
+  try { await api('/api/customers?id=' + id, { method: 'DELETE' }); loadCustomers(); toast(t('toast.deleted')); }
+  catch (err) { toast(t('toast.error') + ': ' + err.message, true); }
 }
 
 // =============== ACTIVITY LOG ===============
@@ -745,7 +867,7 @@ async function loadLogs(append = false) {
     const el = document.getElementById('logEntries');
     if (!append) el.innerHTML = '';
     if (data.logs.length === 0 && !append) {
-      el.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:40px">No activity recorded yet</div>';
+      el.innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:40px">${esc(t('logs.empty'))}</div>`;
       document.getElementById('logLoadMore').style.display = 'none';
       return;
     }
@@ -810,8 +932,8 @@ async function saveSettings() {
       wallet_btc: document.getElementById('setWalletBtc').value,
       wallet_xmr: document.getElementById('setWalletXmr').value
     })});
-    toast('Settings saved!');
-  } catch (err) { toast('Error: ' + err.message, true); }
+    toast(t('toast.settingsSaved'));
+  } catch (err) { toast(t('toast.error') + ': ' + err.message, true); }
 }
 
 // =============== UTILS ===============
