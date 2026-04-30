@@ -6,6 +6,7 @@
 <title>AIRWAVES Admin</title>
 <link rel="icon" type="image/jpeg" href="/images/logo.jpg">
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js" integrity="sha384-9xX8V9w2lC5s0S0x4f5x9q2jK1o5K2n4I8mQqP0n5mXr6M4u1kX3nW2l7eQf0k9M" crossorigin="anonymous"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
@@ -488,7 +489,13 @@ function t(key, vars) {
 function applyLanguage() {
   document.documentElement.lang = currentLang;
   document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.getAttribute('data-i18n')); });
-  document.querySelectorAll('[data-i18n-html]').forEach(el => { el.innerHTML = t(el.getAttribute('data-i18n-html')); });
+  document.querySelectorAll('[data-i18n-html]').forEach(el => {
+    const translatedHtml = t(el.getAttribute('data-i18n-html'));
+    el.innerHTML = DOMPurify.sanitize(translatedHtml, {
+      ALLOWED_TAGS: ['br', 'strong', 'em', 'span'],
+      ALLOWED_ATTR: ['class']
+    });
+  });
   document.querySelectorAll('[data-i18n-placeholder]').forEach(el => { el.placeholder = t(el.getAttribute('data-i18n-placeholder')); });
   ['langEn','langEs','loginLangEn','loginLangEs'].forEach(id => { const el = document.getElementById(id); if (el) el.classList.toggle('active', (id.endsWith('En') && currentLang === 'en') || (id.endsWith('Es') && currentLang === 'es')); });
   // Refresh welcome message
